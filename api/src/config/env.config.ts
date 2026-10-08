@@ -28,6 +28,13 @@ const envConfig = () => ({
   /** "razorpay" | "stripe". Stripe stays available for international cards. */
   PAYMENT_PROVIDER: getEnv("PAYMENT_PROVIDER", "razorpay"),
 
+  /**
+   * Comma-separated OAuth client ids accepted on a Google ID token. The web app
+   * and the Android app are separate clients, so both belong here. Empty turns
+   * Google sign-in off, which is the default.
+   */
+  GOOGLE_CLIENT_IDS: getEnv("GOOGLE_CLIENT_IDS", ""),
+
   JWT_SECRET: getEnv("JWT_SECRET"),
   JWT_EXPIRES_IN: getEnv("JWT_EXPIRES_IN", "7d"),
 });

@@ -24,7 +24,10 @@ export interface UserDocument extends Document {
   _id: Types.ObjectId;
   name: string;
   email: string;
-  password: string;
+  /** Absent on an account that only ever signed in with Google. */
+  password?: string;
+  /** Google's stable subject id. Never the email, which can be reassigned. */
+  googleId?: string;
   phone?: string;
   role: UserRole;
   /**
@@ -62,7 +65,16 @@ const userSchema = new Schema<UserDocument>(
       index: true,
     },
     // Never returned by default; ask for it explicitly when verifying a login.
-    password: { type: String, required: true, select: false },
+    // Required only for password accounts: someone who signed up with Google
+    // has no password to set, and demanding one would block the whole flow.
+    password: {
+      type: String,
+      required: function requiresPassword(this: { googleId?: string }) {
+        return !this.googleId;
+      },
+      select: false,
+    },
+    googleId: { type: String, index: true, sparse: true, unique: true },
     phone: { type: String, trim: true, maxlength: 32 },
     role: { type: String, enum: USER_ROLES, default: "customer", index: true },
     storeId: { type: Schema.Types.ObjectId, ref: "Store", index: true, sparse: true },
@@ -80,7 +92,10 @@ const userSchema = new Schema<UserDocument>(
     timestamps: true,
     toJSON: {
       transform: (_document, record) => {
-        const { __v, password, stripeCustomerId, ...safe } = record as Record<string, unknown>;
+        const { __v, googleId, password, stripeCustomerId, ...safe } = record as Record<
+          string,
+          unknown
+        >;
 
         return safe;
       },
@@ -89,11 +104,17 @@ const userSchema = new Schema<UserDocument>(
 );
 
 userSchema.pre("save", async function hashPassword() {
-  if (!this.isModified("password")) return;
+  // Nothing to hash on a Google-only account, which never sets one.
+  if (!this.isModified("password") || !this.password) return;
   this.password = await hashValue(this.password);
 });
 
 userSchema.methods.comparePassword = function comparePassword(candidate: string) {
+  // A Google-only account has no password. Refuse rather than handing an
+  // undefined to bcrypt: this is the path a password login takes, and it must
+  // never succeed for an account that never set one.
+  if (!this.password) return Promise.resolve(false);
+
   return compareValue(candidate, this.password);
 };
 

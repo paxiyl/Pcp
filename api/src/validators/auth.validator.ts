@@ -20,8 +20,20 @@ export const loginSchema = z.object({
    *
    * "admin" is deliberately not accepted: admins sign in on the backoffice.
    */
-  intendedRole: z.enum(["customer", "driver", "store_owner"]).optional(),
+  intendedRole: z.enum(["customer", "driver", "store_owner", "restaurant_owner"]).optional(),
 });
+
+/**
+ * The ID token the client already got from Google. `intendedRole` carries the
+ * same meaning as on login: a hint the server checks against the stored role,
+ * never a grant.
+ */
+export const googleSignInSchema = z.object({
+  idToken: z.string().min(1, "Missing Google token"),
+  intendedRole: z.enum(["customer", "driver", "store_owner", "restaurant_owner"]).optional(),
+});
+
+export type GoogleSignInInput = z.infer<typeof googleSignInSchema>;
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
