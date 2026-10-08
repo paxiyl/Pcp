@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "OnlineMall",
+    "slug": "onlinemall-hindaun",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "onlinemall",
+    "userInterfaceStyle": "automatic",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "ios": {
+      "icon": "./assets/images/ios-icon.png",
+      "bundleIdentifier": "in.onlinemall.hindaun"
+    },
+    "android": {
+      "icon": "./assets/images/icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "in.onlinemall.hindaun"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1FA85C",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 144,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#10140F",
+            "image": "./assets/images/splash-icon.png"
+          }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "OnlineMall uses your location to show stores that deliver to you in Hindaun and to prefill your delivery address."
+        }
+      ],
+      "expo-secure-store",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "enableGooglePay": false,
+          "merchantIdentifier": ""
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}

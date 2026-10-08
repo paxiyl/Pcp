@@ -1,0 +1,191 @@
+@import "tailwindcss";
+@import "uniwind";
+
+/*
+ * OnlineMall (Hindaun) design tokens.
+ * Values are locked in docs/design/onlinemall-design.md.
+ *
+ * Scale reminders: 4-point spacing (gutter p-gutter = 20, section gap-section = 28,
+ * control h-13 = 52), inputs rounded-input, cards rounded-card, tiles rounded-tile,
+ * sheets rounded-sheet.
+ *
+ * Token naming: the semantic roles the brief calls for (primary-soft, surface,
+ * text-secondary, offer, delivery, info) are defined alongside the shadcn-style
+ * aliases this codebase already uses (foreground, card, muted-foreground,
+ * destructive, accent). Both resolve to the same values, so existing screens keep
+ * working while new work can use the clearer names.
+ */
+
+/* Scales never change with the theme, so they live in @theme and generate utilities directly. */
+@theme {
+  --spacing: 4px;
+
+  /* Named rhythm, so a screen never invents its own gutter. */
+  --spacing-gutter: 20px;
+  --spacing-section: 28px;
+  --spacing-rail: 12px;
+
+  --radius-chip: 10px;
+  --radius-input: 12px;
+  --radius-card: 16px;
+  --radius-tile: 20px;
+  --radius-sheet: 28px;
+  --radius-pill: 999px;
+
+  /* Type scale. Price roles sit above body so money always wins the row. */
+  --text-hero: 56px;
+  --text-hero--line-height: 60px;
+  --text-display: 28px;
+  --text-display--line-height: 34px;
+  --text-title: 22px;
+  --text-title--line-height: 28px;
+  --text-price-lg: 20px;
+  --text-price-lg--line-height: 26px;
+  --text-section: 17px;
+  --text-section--line-height: 22px;
+  --text-price: 16px;
+  --text-price--line-height: 20px;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-label: 13px;
+  --text-label--line-height: 18px;
+  --text-caption: 11px;
+  --text-caption--line-height: 14px;
+  --text-micro: 10px;
+  --text-micro--line-height: 13px;
+
+  --font-sans: "Inter_400Regular";
+  --font-label: "Inter_500Medium";
+  --font-heading: "Inter_600SemiBold";
+  --font-title: "Inter_700Bold";
+}
+
+/* Colours are theme-aware, so they stay variant-scoped. */
+@layer theme {
+  :root {
+    @variant light {
+      /* --- Surfaces. Warm neutral canvas, pure white only where content sits. --- */
+      --color-background: #f7f6f2;
+      --color-surface: #ffffff;
+      --color-elevated: #ffffff;
+      --color-card: #ffffff;
+      --color-muted: #f1f0eb;
+      --color-input: #f4f3ee;
+      --color-border: #e6e3da;
+      --color-border-strong: #d6d2c6;
+
+      /* --- Text. Four deliberate levels, never more. --- */
+      --color-foreground: #15201a;
+      --color-text-primary: #15201a;
+      --color-card-foreground: #15201a;
+      --color-text-secondary: #5b6660;
+      --color-muted-foreground: #5b6660;
+      --color-text-muted: #8a938d;
+      --color-subtle-foreground: #8a938d;
+
+      /* --- Brand green. Primary is the AA-safe fill; brand is surface only. --- */
+      --color-primary: #116e3c;
+      --color-primary-foreground: #ffffff;
+      --color-primary-hover: #15804a;
+      --color-primary-pressed: #0d5a30;
+      --color-primary-soft: #e8f6ec;
+      --color-brand: #1fa85c;
+      --color-secondary: #e8f6ec;
+      --color-secondary-foreground: #116e3c;
+
+      --color-header-from: #1fa85c;
+      --color-header-to: #15804a;
+      --color-header-foreground: #ffffff;
+
+      /* --- Commerce accents. Each owns one job. --- */
+      --color-offer: #e04e1b;
+      --color-offer-foreground: #ffffff;
+      --color-offer-soft: #fdeee7;
+      --color-accent: #e04e1b;
+      --color-accent-foreground: #ffffff;
+      --color-delivery: #6d28d9;
+      --color-delivery-soft: #f1ebfd;
+      --color-rating: #f08c00;
+
+      /* --- Status. --- */
+      --color-success: #16a34a;
+      --color-success-soft: #e7f6ec;
+      --color-warning: #d97706;
+      --color-warning-soft: #fdf2e3;
+      --color-destructive: #dc2626;
+      --color-error: #dc2626;
+      --color-error-soft: #fcebeb;
+      --color-info: #2563eb;
+      --color-info-soft: #eaf0fe;
+    }
+
+    @variant dark {
+      --color-background: #10140f;
+      --color-surface: #181d16;
+      --color-elevated: #1f2620;
+      --color-card: #181d16;
+      --color-muted: #1f2620;
+      --color-input: #1f2620;
+      --color-border: #2c342c;
+      --color-border-strong: #3c453b;
+
+      --color-foreground: #f2f5f0;
+      --color-text-primary: #f2f5f0;
+      --color-card-foreground: #f2f5f0;
+      --color-text-secondary: #a3ada4;
+      --color-muted-foreground: #a3ada4;
+      --color-text-muted: #7f8a80;
+      --color-subtle-foreground: #7f8a80;
+
+      --color-primary: #35c172;
+      --color-primary-foreground: #06220f;
+      --color-primary-hover: #4ad183;
+      --color-primary-pressed: #2aa660;
+      --color-primary-soft: #13301f;
+      --color-brand: #35c172;
+      --color-secondary: #13301f;
+      --color-secondary-foreground: #7fe0a6;
+
+      --color-header-from: #1a8e4e;
+      --color-header-to: #126b3a;
+      --color-header-foreground: #ffffff;
+
+      --color-offer: #ff7a4d;
+      --color-offer-foreground: #2a0d03;
+      --color-offer-soft: #3a1a0e;
+      --color-accent: #ff7a4d;
+      --color-accent-foreground: #2a0d03;
+      --color-delivery: #a78bfa;
+      --color-delivery-soft: #241a3d;
+      --color-rating: #ffa733;
+
+      --color-success: #4ade80;
+      --color-success-soft: #122c1c;
+      --color-warning: #fbbf24;
+      --color-warning-soft: #302312;
+      --color-destructive: #f87171;
+      --color-error: #f87171;
+      --color-error-soft: #321818;
+      --color-info: #7aa5fb;
+      --color-info-soft: #16213a;
+    }
+  }
+}
+
+/*
+ * Hairline dividers. A 1px border on a 3x screen is heavier than intended, so
+ * dense commerce rows use a true hairline instead of a full border.
+ */
+@utility divider-hairline {
+  border-bottom-width: hairlineWidth();
+  border-color: var(--color-border);
+}
+
+/* The only three shadows in the app: cart bar, sheets, floating tab bar. */
+@utility shadow-float {
+  box-shadow: 0 4px 16px rgba(21, 32, 26, 0.1);
+}
+
+@utility shadow-sheet {
+  box-shadow: 0 -4px 24px rgba(21, 32, 26, 0.12);
+}
