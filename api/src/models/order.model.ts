@@ -322,17 +322,13 @@ orderSchema.index({ userId: 1, createdAt: -1 });
  * `restaurantId` was `required: true`. It cannot stay that way now an order may
  * belong to a store, so the invariant moves here rather than disappearing.
  */
-orderSchema.pre("validate", function requireMatchingVendor(next) {
+orderSchema.pre("validate", function requireMatchingVendor() {
   const hasRestaurant = Boolean(this.restaurantId);
   const hasStore = Boolean(this.storeId);
 
   if (hasRestaurant === hasStore) {
-    next(new Error("An order must reference exactly one restaurant or one store"));
-
-    return;
+    throw new Error("An order must reference exactly one restaurant or one store");
   }
-
-  next();
 });
 
 export const OrderModel = model<OrderDocument>("Order", orderSchema);

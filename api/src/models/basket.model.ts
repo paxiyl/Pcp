@@ -103,29 +103,21 @@ const basketSchema = new Schema<BasketDocument>(
  * vendor reference, and it must match the declared kind. Enforced at the model so
  * no service path can write a basket that belongs to nothing.
  */
-basketSchema.pre("validate", function requireMatchingVendor(next) {
+basketSchema.pre("validate", function requireMatchingVendor() {
   const hasRestaurant = Boolean(this.restaurantId);
   const hasStore = Boolean(this.storeId);
 
   if (hasRestaurant === hasStore) {
-    next(new Error("A basket must reference exactly one restaurant or one store"));
-
-    return;
+    throw new Error("A basket must reference exactly one restaurant or one store");
   }
 
   if (this.vendorKind === "restaurant" && !hasRestaurant) {
-    next(new Error("A restaurant basket must reference a restaurant"));
-
-    return;
+    throw new Error("A restaurant basket must reference a restaurant");
   }
 
   if (this.vendorKind === "store" && !hasStore) {
-    next(new Error("A store basket must reference a store"));
-
-    return;
+    throw new Error("A store basket must reference a store");
   }
-
-  next();
 });
 
 export const BasketModel = model<BasketDocument>("Basket", basketSchema);

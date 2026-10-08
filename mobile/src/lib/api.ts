@@ -8,7 +8,7 @@ import { API } from "./axios-client";
  *   useQuery({ queryKey: ["currentUser"], queryFn: getCurrentUserQueryFn })
  */
 
-export type UserRole = "customer" | "driver" | "admin";
+export type UserRole = "customer" | "driver" | "store_owner" | "admin";
 
 export type User = {
   _id: string;

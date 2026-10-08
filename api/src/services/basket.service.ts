@@ -241,11 +241,14 @@ const sameLine = (item: {
  * their own vendor reference, so allowing several is a change to this function and
  * to order creation, not to stored data.
  */
-const resetIfVendorChanged = (
-  basket: BasketDocument | null,
+const resetIfVendorChanged = <T extends BasketDocument>(
+  // Generic over the document type so a hydrated basket goes in and the same
+  // hydrated basket comes back out. Widening to BasketDocument here loses the
+  // Mongoose document fields and the result no longer fits the caller.
+  basket: T | null,
   kind: "restaurant" | "store",
   vendorId: Types.ObjectId,
-): BasketDocument | null => {
+): T | null => {
   if (!basket) return null;
 
   const current =

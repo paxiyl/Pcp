@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect } from "react";
-import { Text, View } from "react-native";
+import { type ColorValue, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -13,7 +13,10 @@ import { SPRING } from "@/lib/motion";
 type Props = {
   name: keyof typeof Ionicons.glyphMap;
   activeName: keyof typeof Ionicons.glyphMap;
-  color: string;
+  // What the navigator hands the tabBarIcon callback, and what Ionicons takes:
+  // a plain string or a platform colour object. Narrowing it to string here
+  // just made every call site an error.
+  color: ColorValue;
   focused: boolean;
   /** Draws the basket count over the icon. Only the basket tab sets this. */
   showBasketCount?: boolean;

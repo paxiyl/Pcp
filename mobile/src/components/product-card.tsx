@@ -4,7 +4,7 @@ import { memo } from "react";
 import { Text, View } from "react-native";
 import { useCSSVariable } from "uniwind";
 
-import type { Product } from "@/features/catalogue/product-types";
+import type { Product } from "@/lib/api";
 import { formatDiscount, formatPrice } from "@/lib/format";
 
 import { PressableScale } from "./ui/pressable-scale";

@@ -135,9 +135,8 @@ const productSchema = new Schema<ProductDocument>(
  * mistake, and it would render a negative discount badge. Clamped at the model so
  * a seed script or an admin edit cannot introduce one.
  */
-productSchema.pre("validate", function clampPriceToMrp(next) {
+productSchema.pre("validate", function clampPriceToMrp() {
   if (this.mrp < this.price) this.mrp = this.price;
-  next();
 });
 
 // One slug per store, not globally: two kiranas may both stock "aashirvaad-atta-1kg".

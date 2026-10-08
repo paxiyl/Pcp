@@ -50,6 +50,8 @@ type ProductFilters = {
   brand?: string;
   sort?: "popular" | "price-asc" | "price-desc" | "discount" | "rating";
   inStockOnly?: boolean;
+  /** Schedule H medicine cannot be bought in the app, so browse surfaces hide it. */
+  excludePrescription?: boolean;
   page?: number;
   limit?: number;
 };

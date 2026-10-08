@@ -1,4 +1,4 @@
-import { initStripe } from "@stripe/stripe-react-native";
+import { initStripe, useStripe } from "@stripe/stripe-react-native";
 
 import type { CheckoutSession, Order } from "@/lib/api";
 import { BRAND } from "@/lib/brand";
@@ -28,16 +28,30 @@ export type SheetOutcome =
   /** Razorpay hands back a callback the SERVER must verify before anything counts. */
   | { status: "verify"; razorpayOrderId: string; razorpayPaymentId: string; signature: string };
 
-type StripeSheet = {
-  initPaymentSheet: (options: Record<string, unknown>) => Promise<{ error?: { message: string } }>;
-  presentPaymentSheet: () => Promise<{ error?: { message: string; code: string } }>;
-};
+/**
+ * Just the two methods this module needs, taken from the hook itself so the
+ * shape cannot drift from the library the screen actually passes in.
+ */
+type StripeSheet = Pick<
+  ReturnType<typeof useStripe>,
+  "initPaymentSheet" | "presentPaymentSheet"
+>;
 
 const openStripeSheet = async (
   session: CheckoutSession,
   sheet: StripeSheet,
   customerName?: string,
 ): Promise<SheetOutcome> => {
+  // Only a stripe session carries a client secret, so the type makes it
+  // optional. Check it here rather than handing Stripe an undefined and
+  // surfacing whatever it throws: this path is someone trying to pay.
+  if (!session.clientSecret) {
+    return {
+      message: "This payment could not be started. Please try again.",
+      status: "failed",
+    };
+  }
+
   await initStripe({ publishableKey: session.publicKey });
 
   const { error: initError } = await sheet.initPaymentSheet({
