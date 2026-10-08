@@ -18,7 +18,9 @@ import { Button } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/ui/google-icon";
 import { Screen } from "@/components/ui/screen";
 import { TextField } from "@/components/ui/text-field";
+import { JoinAsChooser, type JoinAs } from "@/components/join-as-chooser";
 import { useRegister } from "@/features/auth/use-auth";
+import { useApplyToBePartner } from "@/features/partner/use-partner-application";
 import {
   type FieldErrors,
   scorePassword,
@@ -40,6 +42,12 @@ export default function SignUpScreen() {
   const [foreground] = useCSSVariable(["--color-foreground"]);
 
   const register = useRegister();
+  const apply = useApplyToBePartner();
+
+  const [joinAs, setJoinAs] = useState<JoinAs>("customer");
+  const [businessName, setBusinessName] = useState("");
+  const [businessError, setBusinessError] = useState<string | undefined>();
+  const needsBusinessName = joinAs === "store_owner" || joinAs === "restaurant_owner";
 
   const [values, setValues] = useState({ name: "", email: "", phone: "", password: "" });
   const [errors, setErrors] = useState<FieldErrors<SignUpFields>>({});
@@ -60,6 +68,15 @@ export default function SignUpScreen() {
 
     const nextErrors = validateSignUp(values);
     setErrors(nextErrors);
+
+    if (needsBusinessName && businessName.trim().length < 2) {
+      setBusinessError(
+        joinAs === "store_owner" ? "Enter your shop's name" : "Enter your kitchen's name",
+      );
+
+      return;
+    }
+
     if (Object.keys(nextErrors).length > 0) return;
 
     register.mutate(
@@ -71,8 +88,36 @@ export default function SignUpScreen() {
       },
       {
         onSuccess: (response) => {
-          toast.success(`Welcome to OnlineMall, ${response.data.user.name.split(" ")[0]}`);
-          router.replace(response.data.hasAddress ? "/home" : "/location");
+          const firstName = response.data.user.name.split(" ")[0];
+
+          if (joinAs === "customer") {
+            toast.success(`Welcome to OnlineMall, ${firstName}`);
+            router.replace(response.data.hasAddress ? "/home" : "/location");
+
+            return;
+          }
+
+          // The account exists either way. Filing the request is a second step,
+          // and failing it must not strand someone with no way in — so they are
+          // let through as a customer and told to try again from their profile.
+          apply.mutate(
+            {
+              businessName: needsBusinessName ? businessName.trim() : undefined,
+              phone: values.phone.trim(),
+              requestedRole: joinAs,
+            },
+            {
+              onError: () =>
+                toast.error("Your account is ready, but we could not send your request", {
+                  description: "You can apply again from your profile.",
+                }),
+              onSettled: () => router.replace(response.data.hasAddress ? "/home" : "/location"),
+              onSuccess: () =>
+                toast.success("Request sent", {
+                  description: "We review these by hand and will be in touch.",
+                }),
+            },
+          );
         },
         onError: (error) => {
           toast.error("We could not create your account", { description: error.message });
@@ -112,6 +157,24 @@ export default function SignUpScreen() {
           </Animated.View>
 
           <Animated.View className="mt-7 gap-4" entering={enter()}>
+            <JoinAsChooser onChange={setJoinAs} value={joinAs} />
+
+            {needsBusinessName ? (
+              <TextField
+                autoCapitalize="words"
+                error={businessError}
+                label={joinAs === "store_owner" ? "Shop name" : "Kitchen name"}
+                onChangeText={(value) => {
+                  setBusinessName(value);
+                  setBusinessError(undefined);
+                }}
+                placeholder={
+                  joinAs === "store_owner" ? "Sharma General Store" : "Sharma Bhojnalaya"
+                }
+                value={businessName}
+              />
+            ) : null}
+
             <TextField
               autoCapitalize="words"
               autoComplete="name"

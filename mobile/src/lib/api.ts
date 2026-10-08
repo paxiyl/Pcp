@@ -724,3 +724,40 @@ export const completeDeliveryMutationFn = async ({
 
 export const setDriverOnlineMutationFn = async (isOnline: boolean): Promise<OnlineResponse> =>
   API.patch("/driver/online", { isOnline });
+
+/* Partner applications */
+
+export type PartnerRole = "store_owner" | "restaurant_owner" | "driver";
+export type ApplicationStatus = "pending" | "approved" | "rejected";
+
+export type PartnerApplication = {
+  _id: string;
+  requestedRole: PartnerRole;
+  status: ApplicationStatus;
+  businessName?: string;
+  area?: string;
+  phone: string;
+  vehicle?: string;
+  note?: string;
+  reviewNote?: string;
+  createdAt: string;
+};
+
+export type PartnerApplicationInput = {
+  requestedRole: PartnerRole;
+  businessName?: string;
+  area?: string;
+  phone: string;
+  vehicle?: string;
+  note?: string;
+};
+
+type ApplicationResponse = { message: string; data: { application: PartnerApplication } };
+type MyApplicationResponse = { message: string; data: { application: PartnerApplication | null } };
+
+export const applyToBePartnerMutationFn = async (
+  input: PartnerApplicationInput,
+): Promise<ApplicationResponse> => API.post("/partner-applications", input);
+
+export const getMyApplicationQueryFn = async (): Promise<MyApplicationResponse> =>
+  API.get("/partner-applications/mine");
