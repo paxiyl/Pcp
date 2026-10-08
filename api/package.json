@@ -14,7 +14,8 @@
     "seed:admin": "tsx ./src/scripts/seed-admin.ts",
     "seed:banners": "tsx ./src/scripts/seed-banners.ts",
     "seed:stores": "tsx ./src/scripts/seed-stores.ts",
-    "reset:demo": "tsx ./src/scripts/reset-demo-data.ts"
+    "reset:demo": "tsx ./src/scripts/reset-demo-data.ts",
+    "link:owner": "tsx ./src/scripts/link-owner.ts"
   },
   "keywords": [],
   "author": "",
