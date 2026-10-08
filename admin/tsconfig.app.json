@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
+
+    /* Vite serves the app, so TS only ever typechecks it. src/main.tsx imports
+       "./App.tsx" by its real filename, which needs the next line. */
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* import.meta.env in src/lib/axios-client.ts, plus the ?url/asset imports. */
+    "types": ["vite/client"],
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* No baseUrl: it is deprecated in TS 6 and removed in 7. Without it,
+       "paths" resolves relative to this file, which is what we want. */
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src"]
+}

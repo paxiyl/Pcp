@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    /* TypeScript 7 removed moduleResolution "node10", so the classic
+       module/commonjs + node pairing no longer compiles. "nodenext" is the
+       supported equivalent: package.json declares "type": "commonjs", so TS
+       still resolves and emits CommonJS, which is what tsup bundles and what
+       `main: dist/index.js` expects. */
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": ["node"],
+
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    "sourceMap": true,
+    "noEmit": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
