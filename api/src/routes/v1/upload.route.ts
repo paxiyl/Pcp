@@ -15,6 +15,9 @@ const upload = multer({
 
 export const uploadRoutes = Router();
 
-uploadRoutes.use(requireAuth, requireRole("admin"));
+// Owners manage their own catalogue, so they need to upload its images. The
+// endpoint returns a URL and stores nothing against the caller, so widening
+// it grants no access to anyone else's data.
+uploadRoutes.use(requireAuth, requireRole("admin", "store_owner", "restaurant_owner"));
 
 uploadRoutes.post("/image", upload.single("file"), uploadImageController);

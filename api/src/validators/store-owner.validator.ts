@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { productSchema, productUpdateSchema } from "./store.validator";
+
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
 
 export const ownerOrderIdSchema = z.object({ orderId: objectId });
@@ -37,3 +39,26 @@ export const ownerProductsQuerySchema = z.object({
 
 export type AdvanceOrderInput = z.infer<typeof advanceOrderSchema>;
 export type UpdateStockInput = z.infer<typeof updateStockSchema>;
+
+/**
+ * What a shopkeeper may set on their own products.
+ *
+ * Derived from the backoffice schema minus three fields, because a shop that
+ * could set its own rating, review count or "popular" flag would be scoring its
+ * own homework — and those signals are what every listing and rail sorts by.
+ * Price IS included: an owner adding their own stock has to say what it costs.
+ */
+export const ownerProductSchema = productSchema.omit({
+  isPopular: true,
+  rating: true,
+  ratingCount: true,
+});
+
+export const ownerProductUpdateSchema = productUpdateSchema.omit({
+  isPopular: true,
+  rating: true,
+  ratingCount: true,
+});
+
+export type OwnerProductInput = z.infer<typeof ownerProductSchema>;
+export type OwnerProductUpdateInput = z.infer<typeof ownerProductUpdateSchema>;

@@ -5,6 +5,11 @@ import { ProductDocument, ProductModel } from "../models/product.model";
 import { StoreDocument, StoreModel } from "../models/store.model";
 import { UserDocument } from "../models/user.model";
 import { BadRequestException, ForbiddenException, NotFoundException } from "../utils/app-error";
+import {
+  OwnerProductInput,
+  OwnerProductUpdateInput,
+} from "../validators/store-owner.validator";
+import { createProduct, deleteProduct, updateProduct } from "./store.service";
 
 /**
  * Everything a shopkeeper can do, scoped to their own shop.
@@ -206,4 +211,57 @@ export const setOpen = async (user: UserDocument, isOpen: boolean): Promise<Stor
   await store.save();
 
   return store;
+};
+
+/**
+ * Adding, editing and removing the shop's own products.
+ *
+ * Every one of these resolves the store from the signed-in account first and
+ * filters by it, so a productId belonging to the kirana next door simply does
+ * not resolve. The id in the URL is never trusted on its own.
+ *
+ * Note this widens what a shopkeeper controls: updateStock above deliberately
+ * withholds price, but an owner entering their own stock has to be able to say
+ * what it costs. Price on an owner-created product is theirs; the backoffice
+ * can still override it.
+ */
+export const createOwnProduct = async (
+  user: UserDocument,
+  input: OwnerProductInput,
+): Promise<ProductDocument> => {
+  const store = await resolveOwnStore(user);
+
+  // A shop's own new product starts unrated. These are omitted from the owner
+  // schema precisely so they cannot be self-assigned, so they are set here
+  // rather than taken from the request.
+  return createProduct(store._id.toString(), { ...input, rating: 0, ratingCount: 0 });
+};
+
+/** Resolves a product only if it belongs to this owner's store. */
+const resolveOwnProduct = async (
+  user: UserDocument,
+  productId: string,
+): Promise<ProductDocument> => {
+  const store = await resolveOwnStore(user);
+  const product = await ProductModel.findOne({ _id: productId, storeId: store._id }).exec();
+
+  if (!product) throw new NotFoundException("Product not found");
+
+  return product;
+};
+
+export const updateOwnProduct = async (
+  user: UserDocument,
+  productId: string,
+  input: OwnerProductUpdateInput,
+): Promise<ProductDocument> => {
+  const product = await resolveOwnProduct(user, productId);
+
+  return updateProduct(product._id.toString(), input);
+};
+
+export const deleteOwnProduct = async (user: UserDocument, productId: string): Promise<void> => {
+  const product = await resolveOwnProduct(user, productId);
+
+  await deleteProduct(product._id.toString());
 };

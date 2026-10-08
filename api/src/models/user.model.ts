@@ -12,7 +12,7 @@ import { compareValue, hashValue } from "../utils/bcrypt";
  * "admin" is included here because the backoffice shares this user collection,
  * but admins sign in on the separate web app, never in the mobile app.
  */
-export const USER_ROLES = ["customer", "driver", "store_owner", "admin"] as const;
+export const USER_ROLES = ["customer", "driver", "store_owner", "restaurant_owner", "admin"] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
 
@@ -33,6 +33,8 @@ export interface UserDocument extends Document {
    * with a schema `required`, which would block creating the owner first.
    */
   storeId?: Types.ObjectId;
+  /** Set on a restaurant_owner. The counterpart of storeId. */
+  restaurantId?: Types.ObjectId;
   isActive: boolean;
   /** Drivers only: whether they are accepting deliveries right now. */
   isOnline: boolean;
@@ -64,6 +66,7 @@ const userSchema = new Schema<UserDocument>(
     phone: { type: String, trim: true, maxlength: 32 },
     role: { type: String, enum: USER_ROLES, default: "customer", index: true },
     storeId: { type: Schema.Types.ObjectId, ref: "Store", index: true, sparse: true },
+    restaurantId: { type: Schema.Types.ObjectId, ref: "Restaurant", index: true, sparse: true },
     isActive: { type: Boolean, default: true },
     isOnline: { type: Boolean, default: false },
     // Someone who signs up as a rider waits for an admin; an admin who creates

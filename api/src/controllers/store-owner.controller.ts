@@ -5,10 +5,13 @@ import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 import { UserDocument } from "../models/user.model";
 import {
   advanceOrder,
+  createOwnProduct,
+  deleteOwnProduct,
   getOverview,
   listOrders,
   listProducts,
   setOpen,
+  updateOwnProduct,
   updateStock,
 } from "../services/store-owner.service";
 import {
@@ -16,6 +19,8 @@ import {
   ownerOrderIdSchema,
   ownerOrdersQuerySchema,
   ownerProductIdSchema,
+  ownerProductSchema,
+  ownerProductUpdateSchema,
   ownerProductsQuerySchema,
   setOpenSchema,
   updateStockSchema,
@@ -74,5 +79,36 @@ export const setStoreOpenController = asyncHandler(
     const store = await setOpen(currentOwner(request), isOpen);
 
     return response.status(HTTPSTATUS.OK).json({ message: "Store updated", data: { store } });
+  },
+);
+
+export const createStoreProductController = asyncHandler(
+  async (request: Request, response: Response) => {
+    const input = ownerProductSchema.parse(request.body);
+    const product = await createOwnProduct(currentOwner(request), input);
+
+    return response
+      .status(HTTPSTATUS.CREATED)
+      .json({ message: "Product added", data: { product } });
+  },
+);
+
+export const updateStoreProductController = asyncHandler(
+  async (request: Request, response: Response) => {
+    const { productId } = ownerProductIdSchema.parse(request.params);
+    const input = ownerProductUpdateSchema.parse(request.body);
+    const product = await updateOwnProduct(currentOwner(request), productId, input);
+
+    return response.status(HTTPSTATUS.OK).json({ message: "Product updated", data: { product } });
+  },
+);
+
+export const deleteStoreProductController = asyncHandler(
+  async (request: Request, response: Response) => {
+    const { productId } = ownerProductIdSchema.parse(request.params);
+
+    await deleteOwnProduct(currentOwner(request), productId);
+
+    return response.status(HTTPSTATUS.OK).json({ message: "Product removed" });
   },
 );

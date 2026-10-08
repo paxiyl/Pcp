@@ -2,10 +2,13 @@ import { Router } from "express";
 
 import {
   advanceStoreOrderController,
+  createStoreProductController,
+  deleteStoreProductController,
   setStoreOpenController,
   storeOrdersController,
   storeOverviewController,
   storeProductsController,
+  updateStoreProductController,
   updateStoreStockController,
 } from "../../controllers/store-owner.controller";
 import { requireAuth, requireRole } from "../../middlewares/auth.middleware";
@@ -26,4 +29,9 @@ storeOwnerRoutes.get("/orders", storeOrdersController);
 storeOwnerRoutes.patch("/orders/:orderId", advanceStoreOrderController);
 
 storeOwnerRoutes.get("/products", storeProductsController);
+storeOwnerRoutes.post("/products", createStoreProductController);
+// PATCH stays stock-and-listing only, which is what the shop screen's quick
+// toggles send. PUT is the full edit from the product form.
 storeOwnerRoutes.patch("/products/:productId", updateStoreStockController);
+storeOwnerRoutes.put("/products/:productId", updateStoreProductController);
+storeOwnerRoutes.delete("/products/:productId", deleteStoreProductController);
