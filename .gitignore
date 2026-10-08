@@ -29,3 +29,6 @@ npm-debug.log*
 
 # Built APKs
 *.apk
+
+# APK split parts
+apk-parts/
