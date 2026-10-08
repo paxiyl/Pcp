@@ -32,7 +32,9 @@ import { useBanners } from "@/features/catalogue/use-banners";
 import { useProducts, useStores, useTopLevelCategories } from "@/features/catalogue/use-stores";
 import { useRestaurants } from "@/features/catalogue/use-restaurants";
 import { useDefaultAddress } from "@/features/location/use-addresses";
+import { CategoryStrip } from "@/components/category-strip";
 import { ModeSwitch } from "@/components/mode-switch";
+import { VegToggle } from "@/components/veg-toggle";
 import { useDeliveryMode } from "@/features/mode/delivery-mode";
 import { BRAND } from "@/lib/brand";
 import { useCurrentUser } from "@/features/auth/use-auth";
@@ -62,6 +64,11 @@ export default function HomeScreen() {
   // Flips at the midpoint of the dissolve, so the swap happens while the
   // content is invisible rather than popping in front of the customer.
   const [shown, setShown] = useState<"grocery" | "food">("grocery");
+  // Food-mode filters. "all" is the strip's own idea of no filter and is never
+  // sent to the API.
+  const [foodCategory, setFoodCategory] = useState("all");
+  const [vegOnly, setVegOnly] = useState(false);
+  const filtered = vegOnly || foodCategory !== "all";
 
   const foodWash = useAnimatedStyle(() => ({ opacity: progress.value }));
   // Full at either end, nothing at the midpoint: the content fades out, swaps
@@ -94,7 +101,7 @@ export default function HomeScreen() {
   const stores = useStores();
   const deals = useProducts({ limit: 10, sort: "discount" });
   const popular = useProducts({ limit: 10, sort: "popular" });
-  const restaurants = useRestaurants();
+  const restaurants = useRestaurants({ category: foodCategory, veg: vegOnly });
 
   const refreshing =
     deals.isRefetching || popular.isRefetching || stores.isRefetching;
@@ -326,15 +333,37 @@ export default function HomeScreen() {
               {/* In grocery mode the kitchens were a horizontal rail below the
                   shelves. Here they ARE the screen, so they get full width and
                   the whole list rather than the first six. */}
-              <View className="pt-6">
-                <SectionHeader subtitle="Cooked fresh, delivered hot" title="Kitchens near you" />
+              <View className="pt-5">
+                <CategoryStrip onSelect={setFoodCategory} selectedSlug={foodCategory} />
+              </View>
+
+              <View className="flex-row items-center justify-between px-gutter pt-5">
+                <Text className="font-title text-section text-foreground">Kitchens near you</Text>
+                <VegToggle onChange={setVegOnly} value={vegOnly} />
+              </View>
+
+              <View className="pt-4">
                 {restaurants.isLoading ? (
                   <StoreListSkeleton />
                 ) : (restaurants.data ?? []).length === 0 ? (
                   <ErrorState
                     compact
-                    message="No kitchens are delivering to you yet. Swipe back to groceries, or try again shortly."
-                    onRetry={refreshAll}
+                    message={
+                      filtered
+                        ? "No kitchens match that filter right now."
+                        : "No kitchens are delivering to you yet. Swipe back to groceries, or try again shortly."
+                    }
+                    // Retrying a filter that matched nothing just fetches the
+                    // same empty list, so the action clears the filter instead.
+                    onRetry={
+                      filtered
+                        ? () => {
+                            setFoodCategory("all");
+                            setVegOnly(false);
+                          }
+                        : refreshAll
+                    }
+                    retryLabel={filtered ? "Clear filters" : undefined}
                   />
                 ) : (
                   <View className="gap-4 px-gutter">

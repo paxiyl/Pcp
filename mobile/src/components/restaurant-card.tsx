@@ -4,6 +4,8 @@ import { Link } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { useCSSVariable } from "uniwind";
 
+import { VegMark } from "@/components/veg-toggle";
+
 import type { Restaurant } from "@/lib/api";
 import { formatDeliveryFee, formatPrepTime } from "@/lib/format";
 
@@ -13,7 +15,8 @@ type Props = {
 };
 
 export function RestaurantCard({ restaurant, width }: Props) {
-  const [rating] = useCSSVariable(["--color-rating"]);
+  const [rating, brandVar] = useCSSVariable(["--color-rating", "--color-brand"]);
+  const brand = typeof brandVar === "string" ? brandVar : "#1fa85c";
 
   return (
     <Link
@@ -63,6 +66,14 @@ export function RestaurantCard({ restaurant, width }: Props) {
           </View>
 
           <View className="gap-1 p-4">
+            {restaurant.isPureVeg ? (
+              // Stated on the card, not just behind the filter: someone who
+              // keeps veg is scanning for this before they open anything.
+              <View className="mb-1 flex-row items-center gap-1.5 self-start rounded-pill bg-primary-soft px-2 py-1">
+                <VegMark color={brand} size={11} />
+                <Text className="font-label text-caption text-primary">Pure veg</Text>
+              </View>
+            ) : null}
             <Text className="font-heading text-section text-card-foreground" numberOfLines={1}>
               {restaurant.name}
             </Text>

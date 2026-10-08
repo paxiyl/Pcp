@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCSSVariable } from "uniwind";
 
 import { BasketBar } from "@/components/basket-bar";
+import { VegMark } from "@/components/veg-toggle";
 import { RestaurantDetailSkeleton } from "@/components/restaurant-detail-skeleton";
 import { useAddBasketItem, useBasket } from "@/features/basket/use-basket";
 import { useRestaurant } from "@/features/catalogue/use-restaurants";
@@ -252,12 +253,17 @@ export default function RestaurantDetailScreen() {
                       </View>
                     )}
                     <View className="gap-1 p-3">
-                      <Text
-                        className="font-heading text-label text-card-foreground"
-                        numberOfLines={1}
-                      >
-                        {dish.name}
-                      </Text>
+                      <View className="flex-row items-center gap-1.5">
+                        {/* The mark sits before the name, which is the order it
+                            is read in on a printed menu. */}
+                        <VegMark color={dish.isVeg ? "#1fa85c" : "#c2410c"} size={11} />
+                        <Text
+                          className="flex-1 font-heading text-label text-card-foreground"
+                          numberOfLines={1}
+                        >
+                          {dish.name}
+                        </Text>
+                      </View>
                       <Text className="font-label text-label text-card-foreground">
                         {formatPrice(dish.price)}
                       </Text>

@@ -56,6 +56,8 @@ export type Restaurant = {
   description: string;
   imageUrl: string;
   cuisines: string[];
+  /** A kitchen that serves no meat at all. Drives the badge and the veg filter. */
+  isPureVeg: boolean;
   categories: { _id: string; name: string; slug: string }[];
   rating: number;
   ratingCount: number;
@@ -99,6 +101,8 @@ export type Dish = {
   allergens: string[];
   optionGroups: DishOptionGroup[];
   section: string;
+  /** The green-dot mark. Never assumed — the API only sets it when someone said so. */
+  isVeg: boolean;
   isPopular: boolean;
   isAvailable: boolean;
 };
@@ -574,6 +578,7 @@ export const getBannersQueryFn = async (): Promise<BannersResponse> => API.get("
 export const getRestaurantsQueryFn = async (params?: {
   category?: string;
   search?: string;
+  veg?: boolean;
 }): Promise<RestaurantsResponse> => API.get("/restaurants", { params });
 
 export const getRestaurantQueryFn = async (slug: string): Promise<RestaurantResponse> =>
