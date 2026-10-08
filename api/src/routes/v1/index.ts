@@ -17,6 +17,10 @@ import { dishRoutes, restaurantRoutes } from "./restaurant.route";
 import { searchRoutes } from "./search.route";
 import { settingsRoutes } from "./settings.route";
 import { adminStoreOwnerRoutes } from "./admin-store-owner.route";
+import {
+  adminApplicationRoutes,
+  partnerApplicationRoutes,
+} from "./partner-application.route";
 import { restaurantOwnerRoutes } from "./restaurant-owner.route";
 import { storeOwnerRoutes } from "./store-owner.route";
 import {
@@ -38,6 +42,8 @@ routes.use("/orders", orderRoutes);
 routes.use("/restaurants", restaurantRoutes);
 routes.use("/dishes", dishRoutes);
 routes.use("/admin/store-owners", adminStoreOwnerRoutes);
+routes.use("/partner-applications", partnerApplicationRoutes);
+routes.use("/admin/partner-applications", adminApplicationRoutes);
 routes.use("/restaurant-owner", restaurantOwnerRoutes);
 routes.use("/store-owner", storeOwnerRoutes);
 routes.use("/stores", storeRoutes);
