@@ -95,6 +95,13 @@
 
       --color-header-from: #1fa85c;
       --color-header-to: #15804a;
+      /* Food delivery mode. Its own ramp rather than borrowing `offer`, which
+         the design system reserves for discount flags and nothing else. */
+      --color-food: #d9480f;
+      --color-food-foreground: #ffffff;
+      --color-food-soft: #fdf0e6;
+      --color-food-header-from: #f97316;
+      --color-food-header-to: #d9480f;
       --color-header-foreground: #ffffff;
 
       /* --- Commerce accents. Each owns one job. --- */
@@ -148,6 +155,11 @@
 
       --color-header-from: #1a8e4e;
       --color-header-to: #126b3a;
+      --color-food: #fb923c;
+      --color-food-foreground: #2a1206;
+      --color-food-soft: #2a1a10;
+      --color-food-header-from: #b4420d;
+      --color-food-header-to: #8a3209;
       --color-header-foreground: #ffffff;
 
       --color-offer: #ff7a4d;

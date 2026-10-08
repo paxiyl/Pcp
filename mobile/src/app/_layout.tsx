@@ -18,6 +18,7 @@ import { SafeAreaListener, SafeAreaProvider } from "react-native-safe-area-conte
 import { Uniwind, useCSSVariable, useUniwind } from "uniwind";
 
 import { AppToaster } from "@/components/app-toaster";
+import { DeliveryModeProvider } from "@/features/mode/delivery-mode";
 import { useProtectedRoute } from "@/features/auth/use-protected-route";
 import { getStoredTheme } from "@/features/settings/theme-preference";
 import { queryClient } from "@/lib/query-client";
@@ -82,6 +83,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <ProtectedRoutes />
+        {/* Above the navigator: the chosen mode has to survive moving between
+            screens, not reset every time home unmounts. */}
+        <DeliveryModeProvider>
         <SafeAreaProvider>
           <SafeAreaListener onChange={({ insets }) => Uniwind.updateInsets(insets)}>
             <ThemeProvider value={navigationTheme}>
@@ -119,7 +123,8 @@ export default function RootLayout() {
               </View>
             </ThemeProvider>
           </SafeAreaListener>
-        </SafeAreaProvider>
+          </SafeAreaProvider>
+        </DeliveryModeProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

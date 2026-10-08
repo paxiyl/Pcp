@@ -2,7 +2,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import Animated, {
+  useAnimatedReaction,
+  useAnimatedStyle,
+  runOnJS,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCSSVariable } from "uniwind";
 
@@ -19,6 +32,8 @@ import { useBanners } from "@/features/catalogue/use-banners";
 import { useProducts, useStores, useTopLevelCategories } from "@/features/catalogue/use-stores";
 import { useRestaurants } from "@/features/catalogue/use-restaurants";
 import { useDefaultAddress } from "@/features/location/use-addresses";
+import { ModeSwitch } from "@/components/mode-switch";
+import { useDeliveryMode } from "@/features/mode/delivery-mode";
 import { BRAND } from "@/lib/brand";
 import { useCurrentUser } from "@/features/auth/use-auth";
 
@@ -43,12 +58,33 @@ export default function HomeScreen() {
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const handedOff = useRef(false);
 
-  const [headerFrom, headerTo, headerInk, primary, subtle] = useCSSVariable([
+  const { mode, progress } = useDeliveryMode();
+  // Flips at the midpoint of the dissolve, so the swap happens while the
+  // content is invisible rather than popping in front of the customer.
+  const [shown, setShown] = useState<"grocery" | "food">("grocery");
+
+  const foodWash = useAnimatedStyle(() => ({ opacity: progress.value }));
+  // Full at either end, nothing at the midpoint: the content fades out, swaps
+  // while it cannot be seen, and fades back in as one movement.
+  const dissolve = useAnimatedStyle(() => ({
+    opacity: Math.abs(progress.value - 0.5) * 2,
+  }));
+
+  useAnimatedReaction(
+    () => progress.value > 0.5,
+    (isFood, was) => {
+      if (was !== null && isFood !== was) runOnJS(setShown)(isFood ? "food" : "grocery");
+    },
+  );
+
+  const [headerFrom, headerTo, headerInk, primary, subtle, foodFrom, foodTo] = useCSSVariable([
     "--color-header-from",
     "--color-header-to",
     "--color-header-foreground",
     "--color-primary",
     "--color-text-muted",
+    "--color-food-header-from",
+    "--color-food-header-to",
   ]);
 
   const { data: user } = useCurrentUser();
@@ -109,7 +145,21 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <LinearGradient colors={[headerFrom as string, headerTo as string]}>
+      <View>
+        {/* Two gradients rather than one animated one: LinearGradient cannot
+            interpolate its own colours, so the food ramp is washed over the
+            grocery ramp by opacity. Both sit behind the header content. */}
+        <LinearGradient
+          colors={[headerFrom as string, headerTo as string]}
+          style={StyleSheet.absoluteFill}
+        />
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, foodWash]}>
+          <LinearGradient
+            colors={[foodFrom as string, foodTo as string]}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+
         <View className="px-gutter pb-9" style={{ paddingTop: insets.top + 12 }}>
           <View className="flex-row items-start justify-between">
             <Pressable
@@ -159,10 +209,14 @@ export default function HomeScreen() {
             className="font-sans text-body"
             style={{ color: headerInk as string, opacity: 0.88 }}
           >
-            {BRAND.taglineEn}
+            {mode === "food" ? "Hot food from kitchens near you" : BRAND.taglineEn}
           </Text>
+
+          <View className="mt-4">
+            <ModeSwitch />
+          </View>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         className="-mt-6 rounded-t-sheet bg-background"
@@ -194,6 +248,9 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
+        <Animated.View style={dissolve}>
+          {shown === "grocery" ? (
+            <>
         <View className="pt-5">
           <ProductCategoryStrip
             categories={categories.data ?? []}
@@ -263,25 +320,37 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
-
-        {(restaurants.data ?? []).length > 0 ? (
-          <View className="pt-7">
-            <SectionHeader subtitle="Cooked fresh, delivered hot" title="Food from local kitchens" />
-            <ScrollView
-              contentContainerStyle={{ gap: 16, paddingHorizontal: 20 }}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-            >
-              {(restaurants.data ?? []).slice(0, 6).map((restaurant) => (
-                <RestaurantCard
-                  key={restaurant._id}
-                  restaurant={restaurant}
-                  width={contentWidth * 0.72}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        ) : null}
+            </>
+          ) : (
+            <>
+              {/* In grocery mode the kitchens were a horizontal rail below the
+                  shelves. Here they ARE the screen, so they get full width and
+                  the whole list rather than the first six. */}
+              <View className="pt-6">
+                <SectionHeader subtitle="Cooked fresh, delivered hot" title="Kitchens near you" />
+                {restaurants.isLoading ? (
+                  <StoreListSkeleton />
+                ) : (restaurants.data ?? []).length === 0 ? (
+                  <ErrorState
+                    compact
+                    message="No kitchens are delivering to you yet. Swipe back to groceries, or try again shortly."
+                    onRetry={refreshAll}
+                  />
+                ) : (
+                  <View className="gap-4 px-gutter">
+                    {(restaurants.data ?? []).map((restaurant) => (
+                      <RestaurantCard
+                        key={restaurant._id}
+                        restaurant={restaurant}
+                        width={contentWidth}
+                      />
+                    ))}
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+        </Animated.View>
       </ScrollView>
 
       <AddressSheet onClose={() => setAddressSheetOpen(false)} open={addressSheetOpen} />
