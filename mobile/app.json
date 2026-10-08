@@ -53,6 +53,17 @@
           "enableGooglePay": false,
           "merchantIdentifier": ""
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "# @stripe/stripe-react-native ships no consumer rules; its bridge\n# classes are reached reflectively from JS.\n-keep class com.reactnativestripesdk.** { *; }\n\n# Expo resolves modules by name at runtime.\n-keep class * extends expo.modules.kotlin.modules.Module { *; }\n-keep class * implements expo.modules.core.interfaces.Package { *; }\n\n# Stripe's Issuing push-provisioning classes live in a separate\n# optional artifact that is not a dependency here, and nothing\n# calls that path (enableGooglePay is false).\n-dontwarn com.stripe.android.pushProvisioning.**"
+          }
+        }
       ]
     ],
     "experiments": {
