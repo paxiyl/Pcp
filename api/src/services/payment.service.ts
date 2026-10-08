@@ -280,12 +280,20 @@ export type RefundResult = {
  *    the customer is simply not charged; if they did, the refund is a cash
  *    hand-back the shop settles, recorded here so it is not forgotten.
  *
- * Idempotent on the order id, so a double-click cannot pay the customer twice.
+ * Idempotency is keyed on the order AND how much it had already been refunded
+ * when this attempt started. Keying on the order alone looks safer but breaks
+ * the partial refunds the schema exists to support: the second one reuses the
+ * first one's key, so the gateway either rejects it outright or — when the two
+ * amounts happen to match — replays the first refund without moving any money.
+ * Including the watermark means concurrent submits of the SAME attempt still
+ * collapse into one refund, while a later partial gets a key of its own.
  */
 export const refundOrder = async (
   order: OrderDocument,
   amount: number,
   reason: string,
+  /** Paise already refunded on this order before this attempt. */
+  refundedSoFar: number,
 ): Promise<RefundResult> => {
   if (order.paymentMethod === "cod") {
     return { amount, refundId: null, via: "manual" };
@@ -295,18 +303,21 @@ export const refundOrder = async (
     throw new BadRequestException("This order has no captured payment to refund");
   }
 
+  const idempotencyKey = `refund_${order._id.toString()}_${refundedSoFar}`;
+
   if (order.paymentProvider === "stripe") {
     const refund = await getStripe().refunds.create(
       { amount, payment_intent: order.paymentIntentId, reason: "requested_by_customer" },
-      { idempotencyKey: `refund_${order._id.toString()}` },
+      { idempotencyKey },
     );
 
-    return { amount, refundId: refund.id, via: "gateway" };
+    // The gateway's figure, not ours: on a replay they differ.
+    return { amount: refund.amount, refundId: refund.id, via: "gateway" };
   }
 
   const refund = await createRazorpayRefund({
     amount,
-    idempotencyKey: `refund_${order._id.toString()}`,
+    idempotencyKey,
     notes: { orderId: order._id.toString(), reason, reference: order.reference },
     paymentId: order.paymentIntentId,
   });

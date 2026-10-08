@@ -247,10 +247,15 @@ export const refundAdminOrder = async (
     );
   }
 
-  const result = await refundOrder(order, amount, input.reason);
-  const full = alreadyRefunded + amount >= order.total;
+  const result = await refundOrder(order, amount, input.reason, alreadyRefunded);
 
-  order.refundedAmount = alreadyRefunded + amount;
+  // Credit what the gateway actually moved rather than what we asked it to. An
+  // idempotent replay returns the earlier, smaller figure, and books that count
+  // the request instead of the refund would quietly overstate what was paid back.
+  const refundedTotal = alreadyRefunded + result.amount;
+  const full = refundedTotal >= order.total;
+
+  order.refundedAmount = refundedTotal;
   order.refundedAt = new Date();
   order.refundReason = input.reason;
   if (result.refundId) order.refundId = result.refundId;
