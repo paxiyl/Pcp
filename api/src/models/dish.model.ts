@@ -33,6 +33,11 @@ export interface DishDocument extends Document {
   /** Groups the menu list: "Popular", "Mains", "Sides", "Drinks". */
   section: string;
   isPopular: boolean;
+  /**
+   * Vegetarian, as the green-dot mark on an Indian menu means it. Defaults to
+   * false — see the schema for why that direction and not the other.
+   */
+  isVeg: boolean;
   isAvailable: boolean;
   sortOrder: number;
   createdAt: Date;

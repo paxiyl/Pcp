@@ -31,6 +31,10 @@ const toLocation = (input: { latitude?: number; longitude?: number }) =>
 export const listRestaurants = async (query: RestaurantQuery): Promise<RestaurantDocument[]> => {
   const filter: Record<string, unknown> = { isActive: true };
 
+  // Pure-veg is the whole kitchen, not a dish filter: a customer who keeps veg
+  // is usually avoiding the kitchen, not just the dish.
+  if (query.veg) filter.isPureVeg = true;
+
   if (query.category) {
     const category = await CategoryModel.findOne({ slug: query.category.toLowerCase() })
       .select("_id")
@@ -193,6 +197,7 @@ export const createDish = async (
     imageUrl: input.imageUrl,
     isAvailable: input.isAvailable ?? true,
     isPopular: input.isPopular ?? false,
+    isVeg: input.isVeg,
     name: input.name,
     optionGroups: input.optionGroups,
     price: input.price,
@@ -213,6 +218,7 @@ export const updateDish = async (
     "imagePublicId",
     "imageUrl",
     "isAvailable",
+    "isVeg",
     "isPopular",
     "name",
     "optionGroups",

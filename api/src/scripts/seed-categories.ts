@@ -28,20 +28,56 @@ type SeedCategory = {
 };
 
 const categories: SeedCategory[] = [
-  { backgroundColor: "#FFE7D3", file: "offer.png", name: "Offers", slug: "offers", sortOrder: 1 },
-  { backgroundColor: "#FFEBD1", file: "pizza.png", name: "Pizza", slug: "pizza", sortOrder: 2 },
-  { backgroundColor: "#FFF1CC", file: "burger.png", name: "Burgers", slug: "burgers", sortOrder: 3 },
-  { backgroundColor: "#FFE1E6", file: "sushi.png", name: "Sushi", slug: "sushi", sortOrder: 4 },
+  // Hindaun, not the Chowly launch list: Sushi and Jollof were never going to
+  // be ordered here. Snacks and Sweets lead because kachori, samosa and mithai
+  // are what a Rajasthan high street actually sells after dark.
+  { backgroundColor: "#FFE7D3", file: "offers.png", name: "Offers", slug: "offers", sortOrder: 1 },
+  { backgroundColor: "#FFF1CC", file: "thali.png", name: "Thali", slug: "thali", sortOrder: 2 },
+  { backgroundColor: "#FFE3CF", file: "snacks.png", name: "Snacks", slug: "snacks", sortOrder: 3 },
   {
-    backgroundColor: "#FBE2EF",
-    file: "desserts.png",
-    name: "Desserts",
-    slug: "desserts",
+    backgroundColor: "#FDE8D0",
+    file: "biryani.png",
+    name: "Biryani",
+    slug: "biryani",
+    sortOrder: 4,
+  },
+  {
+    backgroundColor: "#FFEBD1",
+    file: "pizza.png",
+    name: "Pizza",
+    slug: "pizza",
     sortOrder: 5,
   },
-  { backgroundColor: "#FFE3D6", file: "jollof.png", name: "Jollof", slug: "jollof", sortOrder: 6 },
-  { backgroundColor: "#DFF3E4", file: "healthy.png", name: "Healthy", slug: "healthy", sortOrder: 7 },
-  { backgroundColor: "#DDEEFB", file: "drinks.png", name: "Drinks", slug: "drinks", sortOrder: 8 },
+  {
+    backgroundColor: "#FFF0D6",
+    file: "burgers.png",
+    name: "Burgers",
+    slug: "burgers",
+    sortOrder: 6,
+  },
+  {
+    backgroundColor: "#FFE1E6",
+    file: "chinese.png",
+    name: "Chinese",
+    slug: "chinese",
+    sortOrder: 7,
+  },
+  {
+    backgroundColor: "#E9F0D9",
+    file: "south-indian.png",
+    name: "South Indian",
+    slug: "south-indian",
+    sortOrder: 8,
+  },
+  { backgroundColor: "#FFEFD9", file: "rolls.png", name: "Rolls", slug: "rolls", sortOrder: 9 },
+  { backgroundColor: "#FDE2EC", file: "sweets.png", name: "Sweets", slug: "sweets", sortOrder: 10 },
+  {
+    backgroundColor: "#DDEEFB",
+    file: "beverages.png",
+    name: "Beverages",
+    slug: "beverages",
+    sortOrder: 11,
+  },
 ];
 
 const seed = async () => {

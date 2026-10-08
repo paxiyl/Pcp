@@ -35,6 +35,7 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResult> =>
 const ROLE_LABELS: Record<string, string> = {
   customer: "customer",
   driver: "delivery partner",
+  restaurant_owner: "restaurant owner",
   store_owner: "store owner",
 };
 

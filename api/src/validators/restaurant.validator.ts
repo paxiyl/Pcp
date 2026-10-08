@@ -13,6 +13,7 @@ export const restaurantSchema = z.object({
   imageUrl: z.string().url("Enter a valid image URL").or(z.literal("")).default(""),
   imagePublicId: z.string().trim().optional(),
   cuisines: z.array(z.string().trim().min(1).max(40)).max(6).default([]),
+  isPureVeg: z.boolean().optional(),
   categories: z.array(objectId).max(10).default([]),
   rating: z.number().min(0).max(5).default(0),
   ratingCount: z.number().int().min(0).default(0),
@@ -47,6 +48,7 @@ export const restaurantUpdateSchema = z.object({
   imageUrl: z.string().url().or(z.literal("")).optional(),
   imagePublicId: z.string().trim().optional(),
   cuisines: z.array(z.string().trim().min(1).max(40)).max(6).optional(),
+  isPureVeg: z.boolean().optional(),
   categories: z.array(objectId).max(10).optional(),
   rating: z.number().min(0).max(5).optional(),
   ratingCount: z.number().int().min(0).optional(),
@@ -98,6 +100,8 @@ export const dishSchema = z.object({
   allergens: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
   optionGroups: z.array(dishOptionGroupSchema).max(10).default([]),
   section: z.string().trim().min(1).max(40).default("Popular"),
+  /* Required, with no default: whoever adds the dish has to say. */
+  isVeg: z.boolean(),
   isPopular: z.boolean().optional(),
   isAvailable: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional(),
@@ -118,6 +122,7 @@ export const dishUpdateSchema = z.object({
   allergens: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
   optionGroups: z.array(dishOptionGroupSchema).max(10).optional(),
   section: z.string().trim().min(1).max(40).optional(),
+  isVeg: z.boolean().optional(),
   isPopular: z.boolean().optional(),
   isAvailable: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional(),
@@ -132,6 +137,8 @@ export const restaurantSlugSchema = z.object({
 export const restaurantQuerySchema = z.object({
   category: z.string().trim().max(40).optional(),
   search: z.string().trim().max(80).optional(),
+  /** Narrow to kitchens that serve no meat at all. */
+  veg: z.coerce.boolean().optional(),
 });
 
 export type RestaurantInput = z.infer<typeof restaurantSchema>;

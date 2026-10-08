@@ -8,6 +8,8 @@ export interface RestaurantDocument extends Document {
   imageUrl: string;
   imagePublicId?: string;
   cuisines: string[];
+  /** A kitchen that serves no meat at all. Shown as a badge and filterable. */
+  isPureVeg: boolean;
   categories: Types.ObjectId[];
   /** Admin-entered, not customer reviews. */
   rating: number;
@@ -40,6 +42,7 @@ const restaurantSchema = new Schema<RestaurantDocument>(
     imageUrl: { type: String, default: "" },
     imagePublicId: { type: String },
     cuisines: { type: [String], default: [] },
+    isPureVeg: { type: Boolean, default: false, index: true },
     categories: [{ type: Schema.Types.ObjectId, ref: "Category", index: true }],
     rating: { type: Number, default: 0, min: 0, max: 5 },
     ratingCount: { type: Number, default: 0, min: 0 },
