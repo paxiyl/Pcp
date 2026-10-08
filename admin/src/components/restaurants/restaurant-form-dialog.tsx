@@ -36,6 +36,7 @@ type FormState = {
   name: string;
   address: string;
   cuisines: string;
+  isPureVeg: boolean;
   imageUrl: string;
   description: string;
   prepMin: string;
@@ -60,6 +61,7 @@ const emptyForm: FormState = {
   address: "",
   commissionRate: "",
   cuisines: "",
+  isPureVeg: false,
   deliveryFee: "4.90",
   description: "",
   imageUrl: "",
@@ -103,6 +105,7 @@ export function RestaurantFormDialog({
                 ? ""
                 : String(Math.round(restaurant.commissionRate * 100)),
             cuisines: restaurant.cuisines.join(", "),
+            isPureVeg: restaurant.isPureVeg,
             deliveryFee: toMajor(restaurant.deliveryFee),
             description: restaurant.description,
             imageUrl: restaurant.imageUrl,
@@ -176,6 +179,7 @@ export function RestaurantFormDialog({
       description: form.description.trim(),
       imageUrl: form.imageUrl.trim(),
       isActive: form.isActive,
+      isPureVeg: form.isPureVeg,
       minOrder: toMinor(form.minOrder),
       prepTimeMaxMinutes: Number(form.prepMax),
       prepTimeMinMinutes: Number(form.prepMin),
@@ -482,6 +486,17 @@ export function RestaurantFormDialog({
               />
               <FieldLabel htmlFor="isOpen">
                 Accepting orders — pause without hiding the restaurant
+              </FieldLabel>
+            </Field>
+
+            <Field orientation="horizontal">
+              <Switch
+                checked={form.isPureVeg}
+                id="isPureVeg"
+                onCheckedChange={(value) => set("isPureVeg", value)}
+              />
+              <FieldLabel htmlFor="isPureVeg">
+                Pure veg — no meat at all, shown as a badge and filterable
               </FieldLabel>
             </Field>
 

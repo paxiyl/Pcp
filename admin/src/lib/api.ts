@@ -237,6 +237,7 @@ export type AdminRestaurantRow = {
   imageUrl: string;
   address: string;
   cuisines: string[];
+  isPureVeg: boolean;
   rating: number;
   ratingCount: number;
   prepTimeMinMinutes: number;
@@ -261,6 +262,7 @@ export type AdminRestaurantList = {
   pages: number;
   stats: { total: number; active: number; inactive: number };
   cuisines: string[];
+  isPureVeg: boolean;
   defaultCommissionRate: number;
 };
 
@@ -279,6 +281,7 @@ export type RestaurantInput = {
   imageUrl?: string;
   address?: string;
   cuisines?: string[];
+  isPureVeg?: boolean;
   prepTimeMinMinutes?: number;
   prepTimeMaxMinutes?: number;
   deliveryFee?: number;
@@ -358,6 +361,8 @@ export type AdminDish = {
   imageUrl: string;
   price: number;
   section: string;
+  /** The green-dot mark. The API refuses to create a dish without it. */
+  isVeg: boolean;
   isAvailable: boolean;
   isPopular: boolean;
   optionGroups: AdminDishOptionGroup[];
@@ -381,6 +386,8 @@ export type DishInput = {
   imageUrl?: string;
   price: number;
   section?: string;
+  /** Required, not optional: the API will not take a dish without it. */
+  isVeg: boolean;
   isAvailable?: boolean;
   isPopular?: boolean;
   optionGroups?: AdminDishOptionGroup[];

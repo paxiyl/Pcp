@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useCategories } from "@/features/categories/use-categories";
@@ -55,6 +56,8 @@ type FormState = {
   imageUrl: string;
   price: string;
   section: string;
+  /** null until chosen. There is no safe default, so the form insists. */
+  isVeg: boolean | null;
   isAvailable: boolean;
   isPopular: boolean;
 };
@@ -67,6 +70,7 @@ const emptyForm: FormState = {
   imageUrl: "",
   isAvailable: true,
   isPopular: false,
+  isVeg: null,
   name: "",
   price: "0.00",
   section: "",
@@ -114,6 +118,7 @@ export function DishFormDialog({
             imageUrl: dish.imageUrl,
             isAvailable: dish.isAvailable,
             isPopular: dish.isPopular,
+            isVeg: dish.isVeg,
             name: dish.name,
             price: toMajor(dish.price),
             section: dish.section,
@@ -123,7 +128,7 @@ export function DishFormDialog({
     setGroups(dish ? toEditableGroups(dish.optionGroups) : []);
   }, [dish, open]);
 
-  const set = (key: keyof FormState, value: string | boolean) =>
+  const set = (key: keyof FormState, value: string | boolean | null) =>
     setForm((current) => ({ ...current, [key]: value }));
 
   const pending = create.isPending || update.isPending;
@@ -149,6 +154,9 @@ export function DishFormDialog({
     const nextErrors: Record<string, string> = {};
     if (form.name.trim().length < 2) nextErrors.name = "Enter a dish name";
     if (!form.section.trim()) nextErrors.section = "Pick a category";
+    // No default is offered on purpose: a wrong veg mark is the one mistake
+    // here a customer cannot recover from.
+    if (form.isVeg === null) nextErrors.isVeg = "Say whether this is vegetarian";
     if (Number(form.price) < 0) nextErrors.price = "Price cannot be negative";
 
     const groupError = validateGroups(groups);
@@ -162,6 +170,7 @@ export function DishFormDialog({
       imageUrl: form.imageUrl.trim(),
       isAvailable: form.isAvailable,
       isPopular: form.isPopular,
+      isVeg: form.isVeg === true,
       name: form.name.trim(),
       price: toMinor(form.price),
       optionGroups: toApiGroups(groups),
@@ -329,6 +338,25 @@ export function DishFormDialog({
                   {errors.price ? <FieldDescription>{errors.price}</FieldDescription> : null}
                 </Field>
               </div>
+
+              <Field data-invalid={errors.isVeg ? true : undefined}>
+                <FieldLabel>Vegetarian</FieldLabel>
+                <RadioGroup
+                  className="flex flex-row gap-6"
+                  onValueChange={(value) => set("isVeg", value === "veg")}
+                  value={form.isVeg === null ? "" : form.isVeg ? "veg" : "nonveg"}
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem id="dish-veg" value="veg" />
+                    <FieldLabel htmlFor="dish-veg">Veg</FieldLabel>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem id="dish-nonveg" value="nonveg" />
+                    <FieldLabel htmlFor="dish-nonveg">Non-veg</FieldLabel>
+                  </div>
+                </RadioGroup>
+                {errors.isVeg ? <FieldDescription>{errors.isVeg}</FieldDescription> : null}
+              </Field>
 
               <Field orientation="horizontal">
                 <Switch
