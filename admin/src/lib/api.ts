@@ -956,3 +956,53 @@ export type VendorSplit = {
 };
 
 export type PaymentSplit = { paymentMethod: string; orders: number; revenue: number };
+
+/* Partner applications */
+
+export type PartnerRole = "store_owner" | "restaurant_owner" | "driver";
+export type ApplicationStatus = "pending" | "approved" | "rejected";
+
+/** `userId` arrives populated with the applicant's contact details. */
+export type ApplicationApplicant = { _id: string; name: string; email: string; phone?: string };
+
+export type PartnerApplication = {
+  _id: string;
+  userId: ApplicationApplicant | string;
+  requestedRole: PartnerRole;
+  status: ApplicationStatus;
+  businessName?: string;
+  area?: string;
+  phone: string;
+  vehicle?: string;
+  note?: string;
+  reviewNote?: string;
+  reviewedAt?: string;
+  createdAt: string;
+};
+
+type ApplicationsResponse = { message: string; data: { applications: PartnerApplication[] } };
+
+export const getApplicationsQueryFn = async (
+  status?: ApplicationStatus,
+): Promise<ApplicationsResponse> =>
+  API.get("/admin/partner-applications", { params: status ? { status } : undefined });
+
+export const reviewApplicationMutationFn = async (input: {
+  applicationId: string;
+  status: "approved" | "rejected";
+  reviewNote?: string;
+}): Promise<{ message: string; data: { application: PartnerApplication } }> =>
+  API.patch(`/admin/partner-applications/${input.applicationId}`, {
+    reviewNote: input.reviewNote,
+    status: input.status,
+  });
+
+/* Google sign-in */
+
+type AuthProvidersResponse = { message: string; data: { google: boolean } };
+
+export const getAuthProvidersQueryFn = async (): Promise<AuthProvidersResponse> =>
+  API.get("/auth/providers");
+
+export const googleSignInMutationFn = async (idToken: string): Promise<AuthResponse> =>
+  API.post("/auth/google", { idToken });

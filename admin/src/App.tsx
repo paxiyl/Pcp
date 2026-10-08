@@ -20,6 +20,7 @@ import { StoreDetailPage } from "@/pages/stores/store-detail-page";
 import { ProductCategoriesPage } from "@/pages/stores/product-categories-page";
 import { StoreOwnersPage } from "@/pages/stores/store-owners-page";
 import { StoresPage } from "@/pages/stores/stores-page";
+import { ApplicationsPage } from "@/pages/applications/applications-page";
 import { ProtectedRoute } from "@/routes/protected-route";
 import { PublicOnlyRoute } from "@/routes/public-only-route";
 import { queryClient } from "@/lib/query-client";
@@ -41,6 +42,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/applications" element={<ApplicationsPage />} />
               <Route path="/banners" element={<BannersPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/customers" element={<CustomersPage />} />

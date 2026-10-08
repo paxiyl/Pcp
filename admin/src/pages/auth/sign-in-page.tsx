@@ -18,8 +18,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
-import { useLogin } from "@/features/auth/use-auth";
-import { ApiError } from "@/lib/axios-client";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { useAuthProviders, useGoogleSignIn, useLogin } from "@/features/auth/use-auth";
+import { ApiError, apiMessage } from "@/lib/axios-client";
 
 type Errors = { email?: string; password?: string };
 
@@ -33,6 +34,10 @@ export function SignInPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useLogin();
+  const googleSignIn = useGoogleSignIn();
+  // The server decides whether Google is usable at all; the button is hidden
+  // rather than shown and then failing.
+  const { data: providers } = useAuthProviders();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -208,6 +213,31 @@ export function SignInPage() {
                 {login.isPending ? <Spinner data-icon="inline-start" /> : null}
                 Sign in
               </Button>
+
+              {providers?.google ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <span className="bg-border h-px flex-1" />
+                    <span className="text-muted-foreground text-xs uppercase tracking-wide">
+                      or
+                    </span>
+                    <span className="bg-border h-px flex-1" />
+                  </div>
+
+                  <div className="flex justify-center">
+                    <GoogleSignInButton
+                      disabled={googleSignIn.isPending || login.isPending}
+                      onCredential={(idToken) =>
+                        googleSignIn.mutate(idToken, {
+                          onError: (error) =>
+                            toast.error(apiMessage(error, "Google sign-in failed.")),
+                          onSuccess: () => void navigate(from, { replace: true }),
+                        })
+                      }
+                    />
+                  </div>
+                </>
+              ) : null}
 
               <p className="text-muted-foreground flex items-center justify-center gap-2 text-sm">
                 <ShieldCheckIcon className="size-4" />

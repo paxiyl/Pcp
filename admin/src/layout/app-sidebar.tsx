@@ -1,5 +1,6 @@
 import {
   BikeIcon,
+  ClipboardListIcon,
   ChevronsUpDownIcon,
   ImageIcon,
   LayoutGridIcon,
@@ -52,6 +53,7 @@ const NAV = [
   { icon: LayoutGridIcon, label: "Categories", to: "/categories" },
   { icon: UsersIcon, label: "Customers", to: "/customers" },
   { icon: BikeIcon, label: "Riders", to: "/riders" },
+  { icon: ClipboardListIcon, label: "Applications", to: "/applications" },
   { icon: ImageIcon, label: "Banners", to: "/banners" },
   { icon: SettingsIcon, label: "Settings", to: "/settings" },
 ];
