@@ -48,9 +48,13 @@ launcher CDN.
 ```bash
 # from the repository root
 export JAVA_HOME=/path/to/jdk8
-./gradlew setupCiWorkspace      # deobfuscates Minecraft, one-off, ~30s
 ./gradlew build                 # runs the self tests, then builds the mod
 ```
+
+The first build also downloads and deobfuscates Minecraft, which takes about
+30 seconds; later builds reuse it. `./gradlew setupCiWorkspace` does that step on
+its own if you want it separated, and `./gradlew setupDecompWorkspace` is the
+usual choice before importing into an IDE.
 
 The result is **`build/libs/pcp-1.0.0.jar`**, reobfuscated and ready to install.
 
