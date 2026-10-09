@@ -28,6 +28,11 @@ public class Chat {
         send(new ChatComponentText(PREFIX + message));
     }
 
+    /** Sends a line with no prefix, for multi-line reports. */
+    public static void sendRaw(String message) {
+        send(new ChatComponentText(EnumChatFormatting.GRAY + message));
+    }
+
     /** Sends {@code message} followed by a clickable link to {@code url}. */
     public static void sendWithLink(String message, String url) {
         ChatComponentText component = new ChatComponentText(PREFIX + message + " ");

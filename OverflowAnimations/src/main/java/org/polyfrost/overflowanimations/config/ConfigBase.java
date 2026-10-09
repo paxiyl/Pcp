@@ -71,10 +71,32 @@ public class ConfigBase {
         this.configFile = new File(configDirectory(), fileName);
     }
 
+    /**
+     * The game directory. OneConfig resolved its config path from Minecraft itself; a bare
+     * relative path would instead land wherever the JVM happens to have been started, which on
+     * PojavLauncher is not the .minecraft folder — settings would then silently fail to persist.
+     */
+    public static File gameDirectory() {
+        try {
+            File home = net.minecraft.launchwrapper.Launch.minecraftHome;
+            if (home != null) return home;
+        } catch (Throwable ignored) {
+            // Not running under LaunchWrapper; fall through.
+        }
+        try {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+            if (mc != null && mc.mcDataDir != null) return mc.mcDataDir;
+        } catch (Throwable ignored) {
+            // Minecraft isn't constructed yet; fall through.
+        }
+        return new File(".");
+    }
+
     private static File configDirectory() {
-        File dir = new File("config");
+        File dir = new File(gameDirectory(), "config");
         if (!dir.exists() && !dir.mkdirs()) {
-            System.out.println("[OverflowAnimations] Could not create the config directory, settings will not persist.");
+            System.out.println("[OverflowAnimations] Could not create " + dir.getAbsolutePath()
+                    + " - settings will not persist.");
         }
         return dir;
     }
@@ -90,6 +112,8 @@ public class ConfigBase {
         initialized = true;
         collect(getClass(), this);
         load();
+        System.out.println("[OverflowAnimations] Settings file: " + configFile.getAbsolutePath()
+                + (configFile.isFile() ? "" : " (not written yet)"));
     }
 
     private void collect(Class<?> clazz, Object instance) {
@@ -258,6 +282,11 @@ public class ConfigBase {
         return displayName;
     }
 
+    /** Where settings are read from and written to. Reported by {@code /oam debug}. */
+    public File getConfigFile() {
+        return configFile;
+    }
+
     /** Kept for source compatibility with OneConfig; loading already happened in the constructor. */
     public void preload() {
         initialize();
@@ -285,7 +314,7 @@ public class ConfigBase {
         try (Writer writer = new FileWriter(configFile)) {
             GSON.toJson(json, writer);
         } catch (Exception e) {
-            System.out.println("[OverflowAnimations] Failed to save " + configFile);
+            System.out.println("[OverflowAnimations] Failed to save " + configFile.getAbsolutePath());
             e.printStackTrace();
         }
     }

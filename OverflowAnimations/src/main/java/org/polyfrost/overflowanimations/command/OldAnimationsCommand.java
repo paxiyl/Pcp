@@ -3,6 +3,7 @@ package org.polyfrost.overflowanimations.command;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import org.polyfrost.overflowanimations.config.OldAnimationsSettings;
+import org.polyfrost.overflowanimations.util.Diagnostics;
 
 import java.util.Arrays;
 import java.util.List;
@@ -25,7 +26,7 @@ public class OldAnimationsCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/overflowanimations - opens the OverflowAnimations settings";
+        return "/overflowanimations [debug] - opens the settings, or prints a self-check";
     }
 
     @Override
@@ -36,6 +37,10 @@ public class OldAnimationsCommand extends CommandBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
+        if (args.length > 0 && args[0].equalsIgnoreCase("debug")) {
+            Diagnostics.report();
+            return;
+        }
         OldAnimationsSettings.INSTANCE.openGui();
     }
 }

@@ -1,5 +1,7 @@
 package org.polyfrost.overflowanimations.util;
 
+import org.polyfrost.overflowanimations.config.ConfigBase;
+
 import java.io.File;
 
 /**
@@ -13,10 +15,11 @@ public class ConfigFiles {
     }
 
     public static File locate(String name) {
+        File config = new File(ConfigBase.gameDirectory(), "config");
         File[] candidates = {
-                new File("config", name),
-                new File("config/oneconfig-profiles/Default", name),
-                new File("config/oneconfig/profiles/Default", name)
+                new File(config, name),
+                new File(config, "oneconfig-profiles/Default/" + name),
+                new File(config, "oneconfig/profiles/Default/" + name)
         };
         for (File candidate : candidates) {
             if (candidate.isFile()) return candidate;

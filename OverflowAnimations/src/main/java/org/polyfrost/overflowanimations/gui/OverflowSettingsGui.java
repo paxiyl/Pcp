@@ -37,7 +37,10 @@ public class OverflowSettingsGui extends GuiScreen {
     private static final int TAB_HEIGHT = 16;
     private static final int TOGGLE_WIDTH = 26;
     private static final int DROPDOWN_WIDTH = 124;
-    private static final int SLIDER_WIDTH = 104;
+    private static final int SLIDER_WIDTH = 124;
+    /** Width of the - / + boxes flanking a slider track. */
+    private static final int STEPPER_WIDTH = 14;
+    private static final int SLIDER_TRACK_WIDTH = SLIDER_WIDTH - 2 * STEPPER_WIDTH - 4;
     private static final int BUTTON_WIDTH = 62;
     private static final int CONTROL_HEIGHT = 14;
     private static final int SCROLLBAR_WIDTH = 4;
@@ -122,6 +125,11 @@ public class OverflowSettingsGui extends GuiScreen {
 
     private int controlLeft(ConfigOption option) {
         return width - 10 - SCROLLBAR_WIDTH - controlWidth(option);
+    }
+
+    /** Left edge of a slider's draggable track, inside its - / + boxes. */
+    private static int sliderTrackX(int controlX) {
+        return controlX + STEPPER_WIDTH + 2;
     }
 
     private static int controlWidth(ConfigOption option) {
@@ -224,7 +232,7 @@ public class OverflowSettingsGui extends GuiScreen {
                 drawDropdown(option, controlX, controlY, mouseX, mouseY, usable);
                 break;
             case SLIDER:
-                drawSlider(option, controlX, controlY, usable);
+                drawSlider(option, controlX, controlY, usable, mouseX, mouseY);
                 break;
             case BUTTON:
                 drawButtonBox(controlX, controlY, BUTTON_WIDTH, CONTROL_HEIGHT, option.buttonText,
@@ -253,15 +261,31 @@ public class OverflowSettingsGui extends GuiScreen {
         drawCenteredString(fontRendererObj, trim(value, DROPDOWN_WIDTH - 32), x + DROPDOWN_WIDTH / 2, y + 3, color);
     }
 
-    private void drawSlider(ConfigOption option, int x, int y, boolean usable) {
+    private void drawSlider(ConfigOption option, int x, int y, boolean usable, int mouseX, int mouseY) {
         float value = option.getFloat();
         float fraction = option.max == option.min ? 0f : (value - option.min) / (option.max - option.min);
         fraction = Math.max(0f, Math.min(1f, fraction));
+
+        // Dragging a 1-pixel-tall track is painful with a touch pointer, so each slider also
+        // gets - / + boxes that step by exactly one increment.
+        int plusX = x + SLIDER_WIDTH - STEPPER_WIDTH;
+        int color = usable ? TEXT : TEXT_DISABLED;
+        drawRect(x, y, x + STEPPER_WIDTH, y + CONTROL_HEIGHT,
+                usable && isOver(mouseX, mouseY, x, y, STEPPER_WIDTH, CONTROL_HEIGHT) ? ACCENT : OUTLINE);
+        drawRect(plusX, y, plusX + STEPPER_WIDTH, y + CONTROL_HEIGHT,
+                usable && isOver(mouseX, mouseY, plusX, y, STEPPER_WIDTH, CONTROL_HEIGHT) ? ACCENT : OUTLINE);
+        drawCenteredString(fontRendererObj, "-", x + STEPPER_WIDTH / 2, y + 3, color);
+        drawCenteredString(fontRendererObj, "+", plusX + STEPPER_WIDTH / 2, y + 3, color);
+
+        int trackX = sliderTrackX(x);
         int trackY = y + CONTROL_HEIGHT / 2 - 1;
-        drawRect(x, trackY, x + SLIDER_WIDTH, trackY + 2, TOGGLE_OFF);
-        int knobX = x + (int) (fraction * SLIDER_WIDTH);
-        drawRect(x, trackY, knobX, trackY + 2, usable ? ACCENT : ACCENT_DIM);
+        drawRect(trackX, trackY, trackX + SLIDER_TRACK_WIDTH, trackY + 2, TOGGLE_OFF);
+        // Rounded, not truncated: a truncated knob sits up to a pixel left of the value it
+        // represents, so tapping the knob would jump the value backwards.
+        int knobX = trackX + Math.round(fraction * SLIDER_TRACK_WIDTH);
+        drawRect(trackX, trackY, knobX, trackY + 2, usable ? ACCENT : ACCENT_DIM);
         drawRect(knobX - 2, y + 1, knobX + 2, y + CONTROL_HEIGHT - 1, usable ? 0xFFFFFFFF : 0xFF9A9AA0);
+
         String text = format(value, option.step);
         fontRendererObj.drawString(text, x - 6 - fontRendererObj.getStringWidth(text), y + 3, usable ? TEXT_DIM : TEXT_DISABLED);
     }
@@ -342,13 +366,29 @@ public class OverflowSettingsGui extends GuiScreen {
                         return;
                     }
                     break;
-                case SLIDER:
-                    if (mouseButton == 0 && isOver(mouseX, mouseY - 4, controlX, controlY, controlW, CONTROL_HEIGHT + 8)) {
+                case SLIDER: {
+                    if (mouseButton != 0) break;
+                    // The grab band covers the whole row height; `controlY - 4` with a height of
+                    // CONTROL_HEIGHT + 8 spans the row, where subtracting from mouseY used to
+                    // shift the band down past it.
+                    int bandY = controlY - 4;
+                    int bandHeight = CONTROL_HEIGHT + 8;
+                    int plusX = controlX + SLIDER_WIDTH - STEPPER_WIDTH;
+                    if (isOver(mouseX, mouseY, controlX, bandY, STEPPER_WIDTH, bandHeight)) {
+                        nudge(option, -1);
+                        return;
+                    }
+                    if (isOver(mouseX, mouseY, plusX, bandY, STEPPER_WIDTH, bandHeight)) {
+                        nudge(option, 1);
+                        return;
+                    }
+                    if (isOver(mouseX, mouseY, controlX, bandY, controlW, bandHeight)) {
                         draggingSlider = option;
                         applySlider(option, mouseX, controlX);
                         return;
                     }
                     break;
+                }
                 case BUTTON:
                     if (mouseButton == 0 && isOver(mouseX, mouseY, controlX, controlY, controlW, CONTROL_HEIGHT)) {
                         option.run();
@@ -439,16 +479,34 @@ public class OverflowSettingsGui extends GuiScreen {
     }
 
     private void applySlider(ConfigOption option, int mouseX, int controlX) {
-        float fraction = (mouseX - controlX) / (float) SLIDER_WIDTH;
+        int trackX = sliderTrackX(controlX);
+        float fraction = (mouseX - trackX) / (float) SLIDER_TRACK_WIDTH;
         fraction = Math.max(0f, Math.min(1f, fraction));
-        float value = option.min + fraction * (option.max - option.min);
+        option.setFloat(snap(option, option.min + fraction * (option.max - option.min)));
+        config.onChanged(option.fieldName());
+    }
+
+    /** Moves a slider by exactly one increment, for the - / + boxes. */
+    private void nudge(ConfigOption option, int direction) {
+        option.setFloat(snap(option, option.getFloat() + direction * increment(option)));
+        changed(option);
+    }
+
+    /**
+     * One granule of the option: exactly what {@link #snap} can represent. Dragging the short
+     * track moves in coarse jumps, so the - / + boxes are what make a precise value reachable.
+     */
+    private static float increment(ConfigOption option) {
+        return option.step > 0 ? option.step : 0.01f;
+    }
+
+    private static float snap(ConfigOption option, float value) {
         if (option.step > 0) {
             value = Math.round(value / option.step) * (float) option.step;
         } else {
             value = Math.round(value * 100f) / 100f;
         }
-        option.setFloat(Math.max(option.min, Math.min(option.max, value)));
-        config.onChanged(option.fieldName());
+        return Math.max(option.min, Math.min(option.max, value));
     }
 
     private void changed(ConfigOption option) {
