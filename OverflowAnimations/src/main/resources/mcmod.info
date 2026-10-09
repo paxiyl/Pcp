@@ -1,0 +1,22 @@
+[
+  {
+    "modid": "${id}",
+    "name": "${name}",
+    "description": "Replaces animations & visuals removed in 1.8 with their old 1.7 visuals while also offering a plethora of extra features!",
+    "version": "${version}",
+    "mcversion": "${mcVersionStr}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [
+      "Polyfrost",
+      "Sk1erLLC",
+      "Microextent",
+      "Dulkir",
+      "Anyone who helped test this mod <3"
+    ],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]

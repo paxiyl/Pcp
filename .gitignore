@@ -1,0 +1,4 @@
+OverflowAnimations/build/
+OverflowAnimations/versions/*/build/
+OverflowAnimations/.gradle/
+OverflowAnimations/run/
