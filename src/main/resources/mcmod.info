@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "pcp",
+    "name": "PCP Adaptive Spacing",
+    "description": "Client-side adaptive PvP spacing and trade-timing assistance: learns the server's knockback response, tracks latency, and drives bounded W-tap / S-tap corrections through the normal input pathway. Use only where server rules permit.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [ "paxiyl" ],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]

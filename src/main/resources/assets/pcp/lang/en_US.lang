@@ -1,0 +1,9 @@
+key.categories.pcp=PCP Adaptive Spacing
+key.pcp.toggle=Toggle assist (master)
+key.pcp.overlay=Toggle debug overlay
+key.pcp.suspend=Suspend automation (hold)
+key.pcp.config=Open PCP settings
+key.pcp.wtap=Toggle W-tap assist
+key.pcp.stap=Toggle S-tap assist
+key.pcp.trade=Toggle trade timing
+key.pcp.override=Manual attack override (hold)

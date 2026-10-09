@@ -1,0 +1,123 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        maven { url = 'https://repo.maven.apache.org/maven2' }
+        maven { url = 'https://oss.sonatype.org/content/repositories/snapshots/' }
+    }
+    dependencies {
+        // ForgeGradle 2.1 is the only FG line that accepts Minecraft 1.8.9
+        // (2.2 is gated to 1.9.4-1.11.2, 2.3 to 1.12+).
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+version = project.mod_version
+group = 'dev.paxiyl.pcp'
+archivesBaseName = project.mod_id
+
+// Minecraft 1.8.9 runs on Java 8 (this is also what PojavLauncher ships for 1.8.9),
+// so the produced class files must be Java 8 bytecode.
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+minecraft {
+    version = project.forge_version
+    runDir = 'run'
+    mappings = project.mappings_version
+    makeObfSourceJar = false
+    replace '@MOD_VERSION@', project.mod_version
+    replaceIn 'PcpMod.java'
+}
+
+repositories {
+    maven { url = 'https://repo.maven.apache.org/maven2' }
+}
+
+// ---------------------------------------------------------------------------
+// Minecraft download end-points.
+//
+// ForgeGradle 2.1 (2015) still fetches Minecraft from Mojang's retired
+// s3.amazonaws.com/Minecraft.Download bucket, which has returned 404 since
+// Mojang moved to the launcher CDN. The task classes expose a settable url, so
+// the three dead end-points are re-pointed here at the current CDN. The object
+// hashes below are the ones published in Mojang's 1.8.9 manifest entry, so the
+// bytes are identical to what FG would have downloaded:
+//
+//   client 3870888a6c3d349d3771a3e9d16c9bf5e076b908
+//   server b58b2ceb36e01bcd8dbf49c8fb66c55a9f0676cd
+//
+// Re-point nothing else: mappings, Forge itself and the Minecraft libraries all
+// still resolve from live Maven repositories.
+// ---------------------------------------------------------------------------
+afterEvaluate {
+    def liveEndpoints = [
+        getVersionJson: 'https://piston-meta.mojang.com/v1/packages/d546f1707a3f2b7d034eece5ea2e311eda875787/1.8.9.json',
+        downloadClient: 'https://launcher.mojang.com/v1/objects/3870888a6c3d349d3771a3e9d16c9bf5e076b908/client.jar',
+        downloadServer: 'https://launcher.mojang.com/v1/objects/b58b2ceb36e01bcd8dbf49c8fb66c55a9f0676cd/server.jar',
+        getAssetIndex : 'https://launchermeta.mojang.com/v1/packages/f6ad102bcaa53b1a58358f16e376d548d44933ec/1.8.json'
+    ]
+    liveEndpoints.each { taskName, endpoint ->
+        def t = tasks.findByName(taskName)
+        if (t != null) {
+            t.url = endpoint
+            logger.info("PCP: re-pointed ${taskName} -> ${endpoint}")
+        }
+    }
+}
+
+processResources {
+    inputs.property 'version', project.mod_version
+    inputs.property 'mcversion', '1.8.9'
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': project.mod_version, 'mcversion': '1.8.9'
+    }
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+            'FMLCorePluginContainsFMLMod': 'false',
+            'Implementation-Title': project.mod_name,
+            'Implementation-Version': project.mod_version
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Self tests.
+//
+// Everything in dev.paxiyl.pcp.core is deliberately free of Minecraft classes
+// so that the decision logic can be compiled and executed head-less, both here
+// and with a plain JDK (see README). The runner reports failures with a non
+// zero exit code.
+// ---------------------------------------------------------------------------
+task coreTest(type: JavaExec, dependsOn: 'testClasses') {
+    group = 'verification'
+    description = 'Runs the head-less core decision-logic self tests.'
+    classpath = sourceSets.test.runtimeClasspath
+    main = 'dev.paxiyl.pcp.core.CoreSelfTest'
+}
+
+// Integration tests against the real Forge/Minecraft classes: the config
+// system, the movement-input wrapper, profile file IO and the null-safety
+// paths. Needs the Minecraft classpath but no window and no GL context.
+task integrationTest(type: JavaExec, dependsOn: 'testClasses') {
+    group = 'verification'
+    description = 'Runs the head-less Forge integration self tests.'
+    classpath = sourceSets.test.runtimeClasspath
+    main = 'dev.paxiyl.pcp.ForgeIntegrationSelfTest'
+}
+
+task selfTest {
+    group = 'verification'
+    description = 'Runs every self test.'
+    dependsOn 'coreTest', 'integrationTest'
+}
+
+build.dependsOn selfTest
