@@ -699,6 +699,62 @@ if (riderSession?.accessToken) {
   );
 }
 
+/*
+  A rider whose ROLE is driver but whose account an admin has not approved yet.
+
+  This is a real path — the admin rider page and seed:driver both create driver
+  accounts directly, without an application — and it is the only one where
+  `assertApproved` does any work, since going through an application grants the
+  role and the approved status together. The property is "can sign in and look,
+  cannot take work".
+*/
+{
+  const mongoose = (await import("mongoose")).default;
+
+  await mongoose.connect(uri);
+
+  const { UserModel } = await import(`${api}/models/user.model.ts`);
+
+  await UserModel.create({
+    driverStatus: "pending",
+    email: "unapproved@check.local",
+    name: "Unapproved Rider",
+    password: "password1234",
+    role: "driver",
+  });
+
+  await mongoose.disconnect();
+
+  const waiting = await expectKeys(
+    "an unapproved rider can still sign in",
+    "/auth/login",
+    ["accessToken", "user"],
+    {
+      body: {
+        email: "unapproved@check.local",
+        intendedRole: "driver",
+        password: "password1234",
+      },
+      method: "POST",
+    },
+  );
+
+  const waitingToken = waiting?.accessToken;
+
+  // Looking is allowed: they need to see the app to know what they are waiting for.
+  await expectKeys("an unapproved rider can see the queue", "/driver/home", ["summary"], {
+    token: waitingToken,
+  });
+
+  // Working is not.
+  await expectKeys(
+    "an unapproved rider cannot go online",
+    "/driver/online",
+    [],
+    { body: { isOnline: true }, method: "PATCH", status: 403, token: waitingToken },
+  );
+}
+
 /* A 404 must be a clean JSON 404, not an HTML error page or a crash. */
 await expectKeys("an unknown route is a clean 404", "/does-not-exist", [], { status: 404 });
 
