@@ -1,5 +1,6 @@
 import { Document, model, Schema, Types } from "mongoose";
 
+import { PAYMENT_METHODS, PaymentMethod } from "./order.model";
 import { compareValue, hashValue } from "../utils/bcrypt";
 
 /**
@@ -54,6 +55,12 @@ export interface UserDocument extends Document {
   ratingCount?: number;
   /** Server-owned link to the Stripe customer; never supplied by a client. */
   stripeCustomerId?: string;
+  /**
+   * How this customer prefers to pay, so checkout opens on it rather than on
+   * whatever we guessed. Not a stored instrument — no card or UPI handle is
+   * ever kept here, only which KIND of payment to select.
+   */
+  preferredPaymentMethod?: PaymentMethod;
   createdAt: Date;
   updatedAt: Date;
   comparePassword: (candidate: string) => Promise<boolean>;
@@ -94,6 +101,7 @@ const userSchema = new Schema<UserDocument>(
     rating: { type: Number, min: 0, max: 5 },
     ratingCount: { type: Number, min: 0 },
     stripeCustomerId: { type: String, select: false },
+    preferredPaymentMethod: { type: String, enum: PAYMENT_METHODS },
   },
   {
     timestamps: true,

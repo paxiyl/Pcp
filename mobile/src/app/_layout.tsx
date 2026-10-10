@@ -105,6 +105,12 @@ export default function RootLayout() {
                   <Stack.Screen name="dish/[id]" options={{ presentation: "modal" }} />
                   <Stack.Screen name="checkout" options={{ animation: "slide_from_right" }} />
                   <Stack.Screen name="order/[id]" options={{ animation: "slide_from_right" }} />
+                  {/* A settings page pushed from the profile tab, so it covers
+                      the tab bar and comes back with a normal back gesture. */}
+                  <Stack.Screen
+                    name="payment-methods"
+                    options={{ animation: "slide_from_right" }}
+                  />
                   {/* Tracking rises over the order it belongs to. */}
                   <Stack.Screen name="track/[id]" options={{ animation: "slide_from_bottom" }} />
                   {/* Confirmation is an arrival, not a step you can go back into. */}

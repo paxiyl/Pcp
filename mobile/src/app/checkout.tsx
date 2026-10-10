@@ -18,6 +18,7 @@ import { useCSSVariable } from "uniwind";
 import { useBasket } from "@/features/basket/use-basket";
 import { useCurrentUser } from "@/features/auth/use-auth";
 import { useDefaultAddress } from "@/features/location/use-addresses";
+import { usePaymentPreferences } from "@/features/payments/use-payment-preferences";
 import { openPaymentSheet } from "@/features/orders/payment-sheet";
 import { useCreateOrder, useSyncOrder, useVerifyPayment } from "@/features/orders/use-orders";
 import { formatEta, formatPrice } from "@/lib/format";
@@ -51,10 +52,16 @@ export default function CheckoutScreen() {
   const syncOrder = useSyncOrder();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const verifyPayment = useVerifyPayment();
+  const { data: paymentPreferences } = usePaymentPreferences();
 
   const [paying, setPaying] = useState(false);
-  // UPI is the default because it is what most of Hindaun actually uses.
-  const [method, setMethod] = useState<PaymentMethod>("upi");
+  /**
+   * Null until the customer picks on THIS order; the saved preference fills in
+   * until then. Derived rather than seeded through an effect, so a preference
+   * arriving a moment after the screen opens cannot overwrite a choice already
+   * made here.
+   */
+  const [chosenMethod, setMethod] = useState<PaymentMethod | null>(null);
   const [editing, setEditing] = useState<EditableField>(null);
   const [phone, setPhone] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -66,6 +73,15 @@ export default function CheckoutScreen() {
   const vendor = basketData?.vendor ?? null;
   const totals = basketData?.totals;
   const paymentOptions = basketData?.payment ?? { codAvailable: false, codMaxOrderValue: 0 };
+
+  // Checkout used to open on UPI for everyone, ignoring what the customer
+  // actually pays with. It opens on their own default now.
+  const preferredMethod = paymentPreferences?.preferred ?? "upi";
+  const method =
+    chosenMethod ??
+    // A cash default is no use on a basket over the cash ceiling: the picker
+    // would open with nothing selected at all.
+    (preferredMethod === "cod" && !paymentOptions.codAvailable ? "upi" : preferredMethod);
 
   const contactPhone = phone || user?.phone || "";
   const deliveryInstructions = instructions || address?.instructions || "";

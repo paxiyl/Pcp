@@ -791,3 +791,32 @@ export const registerPushTokenMutationFn = async (
 export const removePushTokenMutationFn = async (
   token: string,
 ): Promise<{ message: string }> => API.delete("/auth/push-token", { data: { token } });
+
+/* Payment preferences — which KIND of payment to open checkout on */
+
+export type PaymentMethodOption = {
+  method: PaymentMethod;
+  available: boolean;
+  reason?: string;
+};
+
+export type PaymentPreferences = {
+  preferred: PaymentMethod;
+  /** False while the customer is still on the inherited default. */
+  isExplicit: boolean;
+  methods: PaymentMethodOption[];
+  cod: { maxOrderValue: number; available: boolean; reason?: string };
+};
+
+type PaymentPreferencesResponse = { message: string; data: PaymentPreferences };
+
+export const getPaymentPreferencesQueryFn = async (): Promise<PaymentPreferencesResponse> =>
+  API.get("/payment-methods");
+
+/**
+ * Saves which kind of payment to open checkout on. No instrument is stored —
+ * not a card, not a UPI handle — only the choice of method.
+ */
+export const setPaymentPreferenceMutationFn = async (input: {
+  method: PaymentMethod;
+}): Promise<PaymentPreferencesResponse> => API.patch("/payment-methods", input);

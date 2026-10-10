@@ -9,9 +9,19 @@ import { Screen } from "@/components/ui/screen";
 import { useCurrentUser, useLogout } from "@/features/auth/use-auth";
 import { useDefaultAddress } from "@/features/location/use-addresses";
 import { useOrders } from "@/features/orders/use-orders";
+import { usePaymentPreferences } from "@/features/payments/use-payment-preferences";
 import { getPushChoice, type PushChoice } from "@/features/settings/notifications";
 import { applyTheme } from "@/features/settings/theme-preference";
+import type { PaymentMethod } from "@/lib/api";
 import { BRAND } from "@/lib/brand";
+
+const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  card: "Card",
+  cod: "Cash on delivery",
+  netbanking: "Netbanking",
+  upi: "UPI",
+  wallet: "Wallet",
+};
 
 type Row = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -39,6 +49,7 @@ export default function ProfileScreen() {
   const { data: address } = useDefaultAddress();
   const { data: orders } = useOrders();
   const logout = useLogout();
+  const { data: payment } = usePaymentPreferences();
   const { theme } = useUniwind();
 
   const [pushChoice, setPushChoice] = useState<PushChoice>("unasked");
@@ -112,14 +123,12 @@ export default function ProfileScreen() {
             pushChoice === "granted" ? void Linking.openSettings() : setPrimerOpen(true),
         },
         {
-          detail: "UPI, cards and cash on delivery",
+          // The current choice, not a list of what exists: the row answers
+          // "what will checkout do" rather than advertising the feature.
+          detail: payment ? `${PAYMENT_LABEL[payment.preferred]} by default` : "UPI, card or cash",
           icon: "card-outline",
           label: "Payment methods",
-          onPress: () =>
-            Alert.alert(
-              "Payment methods",
-              "You choose how to pay at checkout — UPI, card, netbanking, wallet or cash on delivery. Nothing is stored on your phone.",
-            ),
+          onPress: () => router.push("/payment-methods"),
         },
       ],
       title: "Preferences",
