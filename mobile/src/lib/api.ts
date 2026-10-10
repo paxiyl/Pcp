@@ -132,7 +132,13 @@ type AuthResponse = {
 };
 type UserResponse = {
   message: string;
-  data: { hasAddress: boolean; defaultAddress: Address | null; user: User };
+  data: {
+    hasAddress: boolean;
+    defaultAddress: Address | null;
+    user: User;
+    /** The account's latest partner application, if it ever filed one. */
+    application?: PartnerApplication | null;
+  };
 };
 type CategoriesResponse = { message: string; data: { categories: Category[] } };
 

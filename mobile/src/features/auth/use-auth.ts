@@ -23,12 +23,24 @@ import { clearAccessToken, setAccessToken } from "./token-storage";
  */
 const seedSession = async (
   queryClient: ReturnType<typeof useQueryClient>,
-  data: { accessToken: string; hasAddress: boolean; defaultAddress: unknown; user: unknown },
+  data: {
+    accessToken: string;
+    hasAddress: boolean;
+    defaultAddress: unknown;
+    user: unknown;
+    /** Present on a partner registration. Carried so the route guard sees it. */
+    application?: unknown;
+  },
 ) => {
   await setAccessToken(data.accessToken);
   queryClient.setQueryData(queryKeys.accessToken, data.accessToken);
   queryClient.setQueryData(queryKeys.currentUser, {
     data: {
+      // Seeded, not left for /auth/me to fill in later: the route guard reads
+      // this cache the instant the session flips to signed-in, and without the
+      // application it would send a brand-new applicant to the customer home
+      // before the real answer arrived.
+      application: data.application ?? null,
       defaultAddress: data.defaultAddress,
       hasAddress: data.hasAddress,
       user: data.user,

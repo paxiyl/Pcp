@@ -289,6 +289,43 @@ await expectKeys(
 const token = customer?.accessToken;
 
 await expectKeys("GET /auth/me", "/auth/me", ["user", "hasAddress", "defaultAddress"], { token });
+
+/*
+  The route guard decides where a just-authenticated account belongs from this
+  field. Without it the guard and the sign-up screen redirected to two
+  different places and whichever landed last won — which is why signing up as a
+  store owner still showed the customer page.
+*/
+const kitchenToken = kitchen?.accessToken;
+
+const kitchenMe = await expectKeys(
+  "GET /auth/me reports the pending application",
+  "/auth/me",
+  ["user", "application"],
+  { token: kitchenToken },
+);
+
+record(
+  "the applicant's /auth/me carries a pending application",
+  kitchenMe?.application?.status === "pending" &&
+    kitchenMe?.application?.requestedRole === "restaurant_owner",
+  JSON.stringify(kitchenMe?.application ?? null),
+);
+
+const shopperMe = await expectKeys(
+  "a plain customer's /auth/me has no application",
+  "/auth/me",
+  ["user", "application"],
+  { token },
+);
+
+// `record` takes a boolean, not the value — passing null as the flag made this
+// report a failure while printing the expected answer.
+record(
+  "a plain customer's application is null",
+  shopperMe?.application === null,
+  JSON.stringify(shopperMe?.application),
+);
 await expectKeys("GET /addresses", "/addresses", ["addresses"], { token });
 await expectKeys("GET /basket", "/basket", ["basket", "totals", "payment"], { token });
 await expectKeys("GET /orders", "/orders", ["orders"], { token });

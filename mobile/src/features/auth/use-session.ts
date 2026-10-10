@@ -65,6 +65,7 @@ export const useSession = () => {
   const isResolving = tokenQuery.isLoading || (Boolean(tokenQuery.data) && userQuery.isLoading);
 
   const user = userQuery.data?.data.user;
+  const application = userQuery.data?.data.application ?? null;
 
   return {
     isResolving,
@@ -79,6 +80,21 @@ export const useSession = () => {
      */
     group: GROUP_FOR_ROLE[user?.role ?? "customer"] ?? "(customer)",
     landingRoute: landingRouteFor(user?.role, userQuery.data?.data.hasAddress),
+    /**
+     * Where to go immediately AFTER authenticating, which is not the same
+     * question as where to go on launch.
+     *
+     * Someone who has just asked to become a shop, kitchen or rider should be
+     * told where that request stands — landing them on the customer home is
+     * what made signing up look like it had ignored the choice. But on every
+     * later launch they are an ordinary customer and should go shopping; the
+     * profile row carries the status. So two routes, not one.
+     */
+    postAuthRoute:
+      application?.status === "pending"
+        ? ("/application-status" as const)
+        : landingRouteFor(user?.role, userQuery.data?.data.hasAddress),
+    application,
     hasAddress: userQuery.data?.data.hasAddress ?? false,
     defaultAddress: userQuery.data?.data.defaultAddress ?? null,
     user: userQuery.data?.data.user,

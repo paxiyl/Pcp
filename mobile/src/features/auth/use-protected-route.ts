@@ -11,7 +11,7 @@ import { ROLE_GROUPS, useSession } from "./use-session";
  * route whose navigator no longer exists, which wedges the app on a blank screen.
  */
 export const useProtectedRoute = () => {
-  const { group: ownGroup, isResolving, isSignedIn, landingRoute } = useSession();
+  const { group: ownGroup, isResolving, isSignedIn, landingRoute, postAuthRoute } = useSession();
   const segments = useSegments();
   const router = useRouter();
 
@@ -30,7 +30,19 @@ export const useProtectedRoute = () => {
     }
 
     if (isSignedIn && inAuthGroup) {
-      router.replace(landingRoute);
+      /*
+        `postAuthRoute`, not `landingRoute`.
+
+        This branch and the sign-up screen were both redirecting after a
+        successful registration, to two DIFFERENT places — the screen to
+        /application-status, this to the customer home — and whichever landed
+        last won. Which is why signing up as a store owner put you on the
+        customer page even with the fix in place.
+
+        One answer for "you just authenticated" now, so the two agree and the
+        order stops mattering.
+      */
+      router.replace(postAuthRoute);
       return;
     }
 
@@ -53,5 +65,5 @@ export const useProtectedRoute = () => {
     if (ROLE_GROUPS.includes(group) && group !== ownGroup) {
       router.replace(landingRoute);
     }
-  }, [isResolving, isSignedIn, landingRoute, ownGroup, router, segments]);
+  }, [isResolving, isSignedIn, landingRoute, ownGroup, postAuthRoute, router, segments]);
 };

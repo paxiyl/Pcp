@@ -5,6 +5,7 @@ import { HTTPSTATUS } from "../config/http-status.config";
 import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 import { UserDocument, UserModel } from "../models/user.model";
 import { findDefaultAddress } from "../services/address.service";
+import { myApplication } from "../services/partner-application.service";
 import { loginUser, registerUser, signInWithGoogle } from "../services/auth.service";
 import { clearJwtAuthCookie, setJwtAuthCookie } from "../utils/cookie";
 import {
@@ -49,11 +50,24 @@ export const logoutController = asyncHandler(async (_request: Request, response:
 
 export const currentUserController = asyncHandler(async (request: Request, response: Response) => {
   const user = request.user as UserDocument;
-  const defaultAddress = await findDefaultAddress(user._id.toString());
+
+  const [defaultAddress, application] = await Promise.all([
+    findDefaultAddress(user._id.toString()),
+    /*
+      Reported here so the client knows where an account STANDS from the one
+      call it already makes on launch.
+
+      Without it the app could only learn about an application from the
+      register response, which it no longer has a moment later — so the route
+      guard and the sign-up screen disagreed about where a new applicant
+      belongs, and whichever redirect landed last won.
+    */
+    myApplication(user),
+  ]);
 
   return response.status(HTTPSTATUS.OK).json({
     message: "Current user",
-    data: { defaultAddress, hasAddress: defaultAddress !== null, user },
+    data: { application, defaultAddress, hasAddress: defaultAddress !== null, user },
   });
 });
 
