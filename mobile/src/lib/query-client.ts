@@ -30,6 +30,9 @@ export const queryKeys = {
   storeOverview: ["storeOverview"] as const,
   storeOrders: (status: string) => ["storeOrders", status] as const,
   storeProducts: (search: string) => ["storeProducts", search] as const,
+  kitchenOverview: ["kitchenOverview"] as const,
+  kitchenOrders: (status: string) => ["kitchenOrders", status] as const,
+  kitchenDishes: ["kitchenDishes"] as const,
   stores: (filters: Record<string, unknown> = {}) => ["stores", filters] as const,
 };
 

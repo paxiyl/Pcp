@@ -1,7 +1,7 @@
 import { useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 
-import { useSession } from "./use-session";
+import { ROLE_GROUPS, useSession } from "./use-session";
 
 /**
  * Keeps the visible route and the session in agreement.
@@ -11,7 +11,7 @@ import { useSession } from "./use-session";
  * route whose navigator no longer exists, which wedges the app on a blank screen.
  */
 export const useProtectedRoute = () => {
-  const { isDriver, isResolving, isSignedIn, landingRoute } = useSession();
+  const { group: ownGroup, isResolving, isSignedIn, landingRoute } = useSession();
   const segments = useSegments();
   const router = useRouter();
 
@@ -34,12 +34,24 @@ export const useProtectedRoute = () => {
       return;
     }
 
-    // Roles do not share screens: a rider in the customer app (or the reverse)
-    // is sent to their own side rather than left on a screen the API will refuse.
-    const inDriverGroup = group === "(driver)";
+    if (!isSignedIn) return;
 
-    if (isSignedIn && isDriver !== inDriverGroup) {
+    /*
+      Roles do not share their home screens: someone in another role's app is
+      sent to their own rather than left on a screen the API will refuse.
+
+      Driven by a role-to-group map rather than a chain of `is…` comparisons.
+      The chain only ever knew about riders, so a shopkeeper could sit in the
+      customer app and a kitchen owner had nowhere to be sent at all — and
+      every new role meant another flag and another branch, which is the shape
+      of code that forgets one.
+
+      Only the four role-home groups are policed. Onboarding and any pushed
+      screen — an order, a product, payment methods — are shared, so an owner
+      opening one is left where they are.
+    */
+    if (ROLE_GROUPS.includes(group) && group !== ownGroup) {
       router.replace(landingRoute);
     }
-  }, [isDriver, isResolving, isSignedIn, landingRoute, router, segments]);
+  }, [isResolving, isSignedIn, landingRoute, ownGroup, router, segments]);
 };

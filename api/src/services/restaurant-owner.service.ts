@@ -4,7 +4,7 @@ import { DishDocument, DishModel } from "../models/dish.model";
 import { OrderDocument, OrderModel, OrderStatus } from "../models/order.model";
 import { RestaurantDocument, RestaurantModel } from "../models/restaurant.model";
 import { UserDocument } from "../models/user.model";
-import { ForbiddenException, NotFoundException } from "../utils/app-error";
+import { BadRequestException, ForbiddenException, NotFoundException } from "../utils/app-error";
 import {
   OwnerDishInput,
   OwnerDishUpdateInput,
@@ -81,6 +81,67 @@ export const getOverview = async (user: UserDocument): Promise<RestaurantOwnerOv
     },
     unavailable,
   };
+};
+
+/**
+ * The kitchen's own orders.
+ *
+ * Scoped to the restaurant on the account, exactly as the dish queries are: an
+ * id in a URL is a lookup key, never a grant.
+ */
+export const listOwnOrders = async (
+  user: UserDocument,
+  status?: OrderStatus,
+): Promise<OrderDocument[]> => {
+  const restaurant = await resolveOwnRestaurant(user);
+
+  return OrderModel.find({
+    restaurantId: restaurant._id,
+    ...(status ? { status } : {}),
+  })
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .exec();
+};
+
+/**
+ * The only two transitions a kitchen owns, and for the same reason the shop
+ * has only these: dispatch and delivery belong to the rider, payment belongs
+ * to the gateway. A kitchen that could mark an order delivered could close out
+ * food that never left the counter.
+ */
+const KITCHEN_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
+  confirmed: ["preparing"],
+  preparing: ["ready"],
+};
+
+export const advanceOwnOrder = async (
+  user: UserDocument,
+  orderId: string,
+  next: OrderStatus,
+): Promise<OrderDocument> => {
+  const restaurant = await resolveOwnRestaurant(user);
+
+  const order = await OrderModel.findOne({
+    _id: orderId,
+    restaurantId: restaurant._id,
+  }).exec();
+
+  // Another kitchen's order reads as "not found" rather than "forbidden",
+  // which would confirm it exists.
+  if (!order) throw new NotFoundException("Order not found");
+
+  const allowed = KITCHEN_TRANSITIONS[order.status as OrderStatus] ?? [];
+
+  if (!allowed.includes(next)) {
+    throw new BadRequestException(`You cannot move an order from ${order.status} to ${next}`);
+  }
+
+  order.status = next;
+  order.statusHistory.push({ at: new Date(), status: next } as never);
+  await order.save();
+
+  return order;
 };
 
 export const listOwnDishes = async (

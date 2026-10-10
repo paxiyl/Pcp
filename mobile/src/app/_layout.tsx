@@ -111,6 +111,10 @@ export default function RootLayout() {
                     name="payment-methods"
                     options={{ animation: "slide_from_right" }}
                   />
+                  <Stack.Screen
+                    name="application-status"
+                    options={{ animation: "slide_from_right" }}
+                  />
                   {/* Tracking rises over the order it belongs to. */}
                   <Stack.Screen name="track/[id]" options={{ animation: "slide_from_bottom" }} />
                   {/* Confirmation is an arrival, not a step you can go back into. */}

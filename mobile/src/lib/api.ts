@@ -8,7 +8,17 @@ import { API } from "./axios-client";
  *   useQuery({ queryKey: ["currentUser"], queryFn: getCurrentUserQueryFn })
  */
 
-export type UserRole = "customer" | "driver" | "store_owner" | "admin";
+/**
+ * Every role the API can put on an account. `restaurant_owner` was missing
+ * here, which is how a kitchen owner ended up with no screens: the type said
+ * the role could not exist, so nothing was ever written to handle it.
+ */
+export type UserRole =
+  | "customer"
+  | "driver"
+  | "store_owner"
+  | "restaurant_owner"
+  | "admin";
 
 export type User = {
   _id: string;
@@ -111,7 +121,14 @@ export type Dish = {
 
 type AuthResponse = {
   message: string;
-  data: { accessToken: string; hasAddress: boolean; defaultAddress: Address | null; user: User };
+  data: {
+    accessToken: string;
+    hasAddress: boolean;
+    defaultAddress: Address | null;
+    user: User;
+    /** Present when they signed up as a shop, a kitchen or a rider. */
+    application?: PartnerApplication;
+  };
 };
 type UserResponse = {
   message: string;
@@ -479,10 +496,22 @@ export type RegisterInput = {
   email: string;
   password: string;
   phone?: string;
+  /**
+   * What they are signing up to BE, sent WITH the registration.
+   *
+   * It was a second request, which meant a failure there left someone an
+   * ordinary customer with no application and nothing on screen saying so.
+   * The account created is still always a customer — this files the request an
+   * admin decides on.
+   */
+  joinAs?: PartnerRole;
+  businessName?: string;
+  area?: string;
+  vehicle?: string;
 };
 
-/** The three experiences the one app serves. Admins sign in on the backoffice. */
-export type AppRole = "customer" | "driver" | "store_owner";
+/** The four experiences the one app serves. Admins sign in on the backoffice. */
+export type AppRole = "customer" | "driver" | "store_owner" | "restaurant_owner";
 
 export type LoginInput = {
   email: string;
@@ -578,6 +607,61 @@ export const updateStoreStockMutationFn = async ({
 export const setStoreOpenMutationFn = async (
   isOpen: boolean,
 ): Promise<StoreOwnerStoreResponse> => API.patch("/store-owner/open", { isOpen });
+
+/* Kitchen owner — the counterpart of the shop counter above */
+
+export type RestaurantOwnerOverview = {
+  restaurant: Restaurant;
+  openOrders: Order[];
+  today: { orders: number; revenue: number };
+  /** Dishes the kitchen has switched off, usually because they ran out. */
+  unavailable: number;
+};
+
+type RestaurantOverviewResponse = { message: string; data: RestaurantOwnerOverview };
+type RestaurantOwnerDishesResponse = { message: string; data: { dishes: Dish[] } };
+type RestaurantOwnerRestaurantResponse = { message: string; data: { restaurant: Restaurant } };
+
+export const getKitchenOverviewQueryFn = async (): Promise<RestaurantOverviewResponse> =>
+  API.get("/restaurant-owner/overview");
+
+export const getKitchenDishesQueryFn = async (): Promise<RestaurantOwnerDishesResponse> =>
+  API.get("/restaurant-owner/dishes");
+
+type KitchenOrdersResponse = { message: string; data: { orders: Order[] } };
+
+export const getKitchenOrdersQueryFn = async (
+  status?: string,
+): Promise<KitchenOrdersResponse> =>
+  API.get("/restaurant-owner/orders", { params: status ? { status } : undefined });
+
+/** Only "preparing" and "ready": dispatch belongs to the rider. */
+export const advanceKitchenOrderMutationFn = async ({
+  orderId,
+  status,
+}: {
+  orderId: string;
+  status: "preparing" | "ready";
+}): Promise<OrderResponse> =>
+  API.patch(`/restaurant-owner/orders/${orderId}`, { status });
+
+/**
+ * Switching a dish on or off is the edit a kitchen makes during service, when
+ * something runs out. Everything else about a dish is edited in the backoffice.
+ */
+export const setDishAvailableMutationFn = async ({
+  dishId,
+  isAvailable,
+}: {
+  dishId: string;
+  isAvailable: boolean;
+}): Promise<{ message: string; data: { dish: Dish } }> =>
+  API.put(`/restaurant-owner/dishes/${dishId}`, { isAvailable });
+
+export const setKitchenOpenMutationFn = async (
+  isOpen: boolean,
+): Promise<RestaurantOwnerRestaurantResponse> =>
+  API.patch("/restaurant-owner/open", { isOpen });
 
 export const loginMutationFn = async (input: LoginInput): Promise<AuthResponse> =>
   API.post("/auth/login", input);

@@ -19,7 +19,6 @@ import { Screen } from "@/components/ui/screen";
 import { TextField } from "@/components/ui/text-field";
 import { JoinAsChooser, type JoinAs } from "@/components/join-as-chooser";
 import { useRegister } from "@/features/auth/use-auth";
-import { useApplyToBePartner } from "@/features/partner/use-partner-application";
 import {
   type FieldErrors,
   scorePassword,
@@ -41,7 +40,6 @@ export default function SignUpScreen() {
   const [foreground] = useCSSVariable(["--color-foreground"]);
 
   const register = useRegister();
-  const apply = useApplyToBePartner();
 
   const [joinAs, setJoinAs] = useState<JoinAs>("customer");
   const [businessName, setBusinessName] = useState("");
@@ -72,50 +70,50 @@ export default function SignUpScreen() {
       return;
     }
 
+    // A partner application has to be answerable, and we answer by phone.
+    if (joinAs !== "customer" && values.phone.trim().length < 7) {
+      setErrors({ ...nextErrors, phone: "We need a number to call you about your application" });
+
+      return;
+    }
+
     if (Object.keys(nextErrors).length > 0) return;
 
+    /*
+      One request. The role used to be sent separately after the account was
+      created, so a failure on that second call left someone an ordinary
+      customer with no application and nothing on screen saying so — which is
+      what made signing up as a kitchen look like it had silently ignored the
+      choice. Now it is both or neither.
+    */
     register.mutate(
       {
+        // No locality field on this form on purpose: it is one more thing to
+        // type at the worst moment, and the admin asks on the call anyway.
+        businessName: needsBusinessName ? businessName.trim() : undefined,
         email: values.email.trim(),
+        joinAs: joinAs === "customer" ? undefined : joinAs,
         name: values.name.trim(),
         password: values.password,
         phone: values.phone.trim() || undefined,
       },
       {
+        onError: (error) => {
+          toast.error("We could not create your account", { description: error.message });
+        },
         onSuccess: (response) => {
           const firstName = response.data.user.name.split(" ")[0];
 
-          if (joinAs === "customer") {
-            toast.success(`Welcome to Raket, ${firstName}`);
-            router.replace(response.data.hasAddress ? "/home" : "/location");
+          // An applicant goes to a screen that says where their request stands.
+          // Dropping them on the customer home is what made this look broken.
+          if (response.data.application) {
+            router.replace("/application-status");
 
             return;
           }
 
-          // The account exists either way. Filing the request is a second step,
-          // and failing it must not strand someone with no way in — so they are
-          // let through as a customer and told to try again from their profile.
-          apply.mutate(
-            {
-              businessName: needsBusinessName ? businessName.trim() : undefined,
-              phone: values.phone.trim(),
-              requestedRole: joinAs,
-            },
-            {
-              onError: () =>
-                toast.error("Your account is ready, but we could not send your request", {
-                  description: "You can apply again from your profile.",
-                }),
-              onSettled: () => router.replace(response.data.hasAddress ? "/home" : "/location"),
-              onSuccess: () =>
-                toast.success("Request sent", {
-                  description: "We review these by hand and will be in touch.",
-                }),
-            },
-          );
-        },
-        onError: (error) => {
-          toast.error("We could not create your account", { description: error.message });
+          toast.success(`Welcome to Raket, ${firstName}`);
+          router.replace(response.data.hasAddress ? "/home" : "/location");
         },
       },
     );

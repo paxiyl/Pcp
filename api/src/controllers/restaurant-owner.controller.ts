@@ -4,18 +4,23 @@ import { HTTPSTATUS } from "../config/http-status.config";
 import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 import { UserDocument } from "../models/user.model";
 import {
+  advanceOwnOrder,
   createOwnDish,
   deleteOwnDish,
   getOverview,
   listOwnDishes,
+  listOwnOrders,
   setOpen,
   updateOwnDish,
 } from "../services/restaurant-owner.service";
 import {
+  advanceKitchenOrderSchema,
   ownerDishesQuerySchema,
   ownerDishIdSchema,
   ownerDishSchema,
   ownerDishUpdateSchema,
+  ownerOrderIdSchema,
+  ownerOrdersQuerySchema,
   setRestaurantOpenSchema,
 } from "../validators/restaurant-owner.validator";
 
@@ -75,5 +80,24 @@ export const deleteRestaurantDishController = asyncHandler(
     await deleteOwnDish(currentOwner(request), dishId);
 
     return response.status(HTTPSTATUS.OK).json({ message: "Dish removed" });
+  },
+);
+
+export const kitchenOrdersController = asyncHandler(
+  async (request: Request, response: Response) => {
+    const { status } = ownerOrdersQuerySchema.parse(request.query);
+    const orders = await listOwnOrders(currentOwner(request), status);
+
+    return response.status(HTTPSTATUS.OK).json({ message: "Orders", data: { orders } });
+  },
+);
+
+export const advanceKitchenOrderController = asyncHandler(
+  async (request: Request, response: Response) => {
+    const { orderId } = ownerOrderIdSchema.parse(request.params);
+    const { status } = advanceKitchenOrderSchema.parse(request.body);
+    const order = await advanceOwnOrder(currentOwner(request), orderId, status);
+
+    return response.status(HTTPSTATUS.OK).json({ message: "Order updated", data: { order } });
   },
 );

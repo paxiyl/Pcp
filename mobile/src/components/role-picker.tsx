@@ -16,8 +16,16 @@ const ROLES: {
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
   { hint: "Shop and track orders", icon: "bag-handle-outline", label: "Customer", role: "customer" },
-  { hint: "Manage your shop", icon: "storefront-outline", label: "Store owner", role: "store_owner" },
   { hint: "Pick up and deliver", icon: "bicycle-outline", label: "Delivery partner", role: "driver" },
+  { hint: "Manage your shop", icon: "storefront-outline", label: "Store owner", role: "store_owner" },
+  {
+    // Was missing entirely, so an approved kitchen owner had no way to ask for
+    // their own screens — they could only sign in as a customer.
+    hint: "Manage your kitchen",
+    icon: "restaurant-outline",
+    label: "Kitchen owner",
+    role: "restaurant_owner",
+  },
 ];
 
 /**
@@ -35,7 +43,10 @@ export function RolePicker({ value, onChange }: Props) {
   const [primary, secondary] = useCSSVariable(["--color-primary", "--color-text-secondary"]);
 
   return (
-    <View accessibilityRole="radiogroup" className="flex-row gap-2">
+    // Two by two rather than four across: at four, "Delivery partner" and
+    // "Kitchen owner" are squeezed into about seventy points each and wrap
+    // mid-word, which reads as broken rather than as a choice.
+    <View accessibilityRole="radiogroup" className="flex-row flex-wrap" style={{ gap: 8 }}>
       {ROLES.map((option) => {
         const selected = option.role === value;
 
@@ -45,19 +56,22 @@ export function RolePicker({ value, onChange }: Props) {
             accessibilityLabel={option.label}
             accessibilityRole="radio"
             accessibilityState={{ checked: selected, selected }}
-            className={`flex-1 items-center gap-1.5 rounded-input border px-2 py-3 ${
+            className={`flex-row items-center gap-2 rounded-input border px-3 py-3 ${
               selected ? "border-primary bg-primary-soft" : "border-border bg-surface active:bg-muted"
             }`}
+            // Half the row, less half the gap. Two per line, whatever the
+            // phone's width.
+            style={{ width: "48%" }}
             key={option.role}
             onPress={() => onChange(option.role)}
           >
             <Ionicons
               color={(selected ? primary : secondary) as string}
               name={option.icon}
-              size={22}
+              size={20}
             />
             <Text
-              className={`text-center text-caption ${
+              className={`flex-1 text-caption ${
                 selected ? "font-heading text-primary" : "font-label text-text-secondary"
               }`}
               numberOfLines={2}

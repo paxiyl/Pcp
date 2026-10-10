@@ -1,9 +1,11 @@
 import { Router } from "express";
 
 import {
+  advanceKitchenOrderController,
   createRestaurantDishController,
   deleteRestaurantDishController,
   restaurantDishesController,
+  kitchenOrdersController,
   restaurantOverviewController,
   setRestaurantOpenController,
   updateRestaurantDishController,
@@ -21,6 +23,9 @@ restaurantOwnerRoutes.use(requireAuth, requireRole("restaurant_owner"));
 
 restaurantOwnerRoutes.get("/overview", restaurantOverviewController);
 restaurantOwnerRoutes.patch("/open", setRestaurantOpenController);
+
+restaurantOwnerRoutes.get("/orders", kitchenOrdersController);
+restaurantOwnerRoutes.patch("/orders/:orderId", advanceKitchenOrderController);
 
 restaurantOwnerRoutes.get("/dishes", restaurantDishesController);
 restaurantOwnerRoutes.post("/dishes", createRestaurantDishController);

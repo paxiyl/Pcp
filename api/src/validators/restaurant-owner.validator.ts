@@ -21,5 +21,27 @@ export const ownerDishUpdateSchema = dishUpdateSchema.omit({ isPopular: true });
 
 export const setRestaurantOpenSchema = z.object({ isOpen: z.boolean() });
 
+export const ownerOrderIdSchema = z.object({ orderId: objectId });
+
+export const ownerOrdersQuerySchema = z.object({
+  status: z
+    .enum([
+      "pending_payment",
+      "payment_failed",
+      "confirmed",
+      "preparing",
+      "ready",
+      "out_for_delivery",
+      "delivered",
+      "cancelled",
+    ])
+    .optional(),
+});
+
+/** Only the two a kitchen owns. The service enforces this too. */
+export const advanceKitchenOrderSchema = z.object({
+  status: z.enum(["preparing", "ready"]),
+});
+
 export type OwnerDishInput = z.infer<typeof ownerDishSchema>;
 export type OwnerDishUpdateInput = z.infer<typeof ownerDishUpdateSchema>;

@@ -12,6 +12,26 @@ import { getAccessToken } from "./token-storage";
  * here resolves to signed-out rather than a retry loop.
  */
 /**
+ * Role to route group, so the guard does not have to grow an `is…` flag and a
+ * branch for every role. Anything not listed belongs in the customer app.
+ */
+export const GROUP_FOR_ROLE: Record<string, string> = {
+  admin: "(customer)",
+  customer: "(customer)",
+  driver: "(driver)",
+  restaurant_owner: "(kitchen)",
+  store_owner: "(store)",
+};
+
+/**
+ * The four groups that belong to exactly one role, and the only ones the guard
+ * polices. Everything else — onboarding, a pushed order or product screen,
+ * payment methods — is shared by everybody, so an owner opening one of those
+ * must not be bounced back to their counter.
+ */
+export const ROLE_GROUPS = ["(customer)", "(driver)", "(kitchen)", "(store)"];
+
+/**
  * Where a signed-in account belongs.
  *
  * One app, three front doors. The role on the account decides which one opens —
@@ -21,6 +41,9 @@ import { getAccessToken } from "./token-storage";
 export const landingRouteFor = (role?: string, hasAddress?: boolean) => {
   if (role === "driver") return "/driver-home" as const;
   if (role === "store_owner") return "/store-dashboard" as const;
+  // Was missing, which is why an approved kitchen owner fell through to the
+  // customer home: there were no kitchen screens to send them to.
+  if (role === "restaurant_owner") return "/kitchen-counter" as const;
 
   return hasAddress ? ("/home" as const) : ("/location" as const);
 };
@@ -49,6 +72,12 @@ export const useSession = () => {
     role: user?.role,
     isDriver: user?.role === "driver",
     isStoreOwner: user?.role === "store_owner",
+    isKitchenOwner: user?.role === "restaurant_owner",
+    /**
+     * The one role-home group this account belongs in. An applicant waiting on
+     * a decision is still a customer, so they wait in the customer app.
+     */
+    group: GROUP_FOR_ROLE[user?.role ?? "customer"] ?? "(customer)",
     landingRoute: landingRouteFor(user?.role, userQuery.data?.data.hasAddress),
     hasAddress: userQuery.data?.data.hasAddress ?? false,
     defaultAddress: userQuery.data?.data.defaultAddress ?? null,

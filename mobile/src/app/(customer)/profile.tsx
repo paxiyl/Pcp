@@ -9,6 +9,7 @@ import { Screen } from "@/components/ui/screen";
 import { useCurrentUser, useLogout } from "@/features/auth/use-auth";
 import { useDefaultAddress } from "@/features/location/use-addresses";
 import { useOrders } from "@/features/orders/use-orders";
+import { useMyApplication } from "@/features/partner/use-partner-application";
 import { usePaymentPreferences } from "@/features/payments/use-payment-preferences";
 import { getPushChoice, type PushChoice } from "@/features/settings/notifications";
 import { applyTheme } from "@/features/settings/theme-preference";
@@ -50,6 +51,9 @@ export default function ProfileScreen() {
   const { data: orders } = useOrders();
   const logout = useLogout();
   const { data: payment } = usePaymentPreferences();
+  // Only a customer can have one outstanding; an approved partner is already
+  // in their own app and never sees this screen.
+  const { data: application } = useMyApplication(user?.role === "customer");
   const { theme } = useUniwind();
 
   const [pushChoice, setPushChoice] = useState<PushChoice>("unasked");
@@ -107,6 +111,42 @@ export default function ProfileScreen() {
       ],
       title: "Orders & delivery",
     },
+    // Always offered to a customer: with an application it reports where it
+    // stands, without one it is the way to make one. An applicant dropped on
+    // this screen with no sign their request existed is why the row is here.
+    ...(user?.role === "customer"
+      ? [
+          {
+            rows: [
+              {
+                detail: !application
+                  ? "Sell on Raket, or deliver for us"
+                  : application.status === "pending"
+                    ? "With us — we will call you"
+                    : application.status === "approved"
+                      ? "Approved. Sign out and back in."
+                      : "Not approved",
+                icon: !application
+                  ? ("rocket-outline" as const)
+                  : application.requestedRole === "driver"
+                    ? ("bicycle-outline" as const)
+                    : application.requestedRole === "restaurant_owner"
+                      ? ("restaurant-outline" as const)
+                      : ("storefront-outline" as const),
+                label: !application
+                  ? "Become a partner"
+                  : application.requestedRole === "driver"
+                    ? "Delivery partner application"
+                    : application.requestedRole === "restaurant_owner"
+                      ? "Kitchen application"
+                      : "Shop application",
+                onPress: () => router.push("/application-status"),
+              },
+            ],
+            title: "Joining Raket",
+          },
+        ]
+      : []),
     {
       rows: [
         {
