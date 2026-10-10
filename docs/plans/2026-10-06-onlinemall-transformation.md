@@ -720,9 +720,17 @@ holding something worth stealing, and the gateway already does that properly.
   Both are "sync a draft from server state", both cost an extra render and
   nothing else, and both were left alone rather than churned immediately before
   an APK build.
-- Google sign-in in the mobile app is still unbuilt: `google-services.json` for
-  this project carries an empty `oauth_client` array, so there is no client id
-  to sign in against until one is created in the Firebase console.
+- Google sign-in is **built on all three** now, and **switched off** until an
+  OAuth client exists. The app's button was an `Alert.alert` stub while the API
+  endpoint and the backoffice button were already real; it uses
+  `@react-native-google-signin` to fetch an ID token and the API verifies it.
+  Both clients hide the button unless their own client id is set AND
+  `GET /auth/providers` reports Google configured, so nothing on screen changes
+  until the setup below is done. One thing worth knowing before trying:
+  `GOOGLE_CLIENT_IDS` takes the **web** client id only. The Android app passes
+  that same web id as `webClientId`, so it is what lands in every token's
+  audience; the Android OAuth client is still required for the native sign-in
+  to be permitted at all, but never appears in an audience.
 - **A partial refund does not net off settlement, and the right answer is a
   business decision rather than a missing line of code.** A full refund cancels
   the order, so it leaves settlement entirely. A partial one leaves the order
@@ -746,7 +754,20 @@ Everything left needs your machine, a device, or a decision:
    which installs fine for testing and is rejected by Play. Create it once,
    back it up in two places, and never lose it: a lost upload key means never
    updating the app again.
-3. **An OAuth client in Firebase**, if Google sign-in is wanted in the app.
+3. **Two OAuth clients in Google Cloud**, to switch Google sign-in on. The
+   project is `raket-c2e81` and its `google-services.json` currently carries an
+   empty `oauth_client` array, which is why the buttons are hidden.
+   - A **Web application** client. Its id goes in three places: the API's
+     `GOOGLE_CLIENT_IDS`, the app's `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, and the
+     backoffice's `VITE_GOOGLE_CLIENT_ID`. The client *secret* is needed
+     nowhere — we verify tokens, we never exchange codes.
+   - An **Android** client, package `in.raketdelivery.app`, carrying the SHA-1
+     of whichever keystore signs the build. Without it the native sign-in is
+     refused with `DEVELOPER_ERROR` before a token is ever issued. Note that
+     the debug key and a release key have different fingerprints, so a release
+     build needs its own entry — this is the step people forget and then spend
+     an afternoon on.
+   Then re-download `google-services.json` and rebuild the app.
 4. **Point the app at the real API.** `EXPO_PUBLIC_API_URL` is unset, so builds
    fall back to `http://localhost:8000/api/v1` — correct only while the API runs
    on the same phone. Set it to the VPS, then remove `usesCleartextTraffic` from
