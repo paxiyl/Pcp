@@ -99,24 +99,29 @@ export function CategoryStrip({ onSelect, selectedSlug }: Props) {
   const allSelected = selectedSlug === "all";
 
   
-  const renderImage = (category: Category) => {
-    return  category.imageUrl ? (
+  /**
+   * A category's own artwork, or its glyph when there is none.
+   *
+   * The two console.log handlers that used to sit here were debugging left in:
+   * they shipped in the release build and wrote two lines per tile per scroll.
+   * A failed image already falls back to the glyph, so there was nothing for
+   * them to tell anybody.
+   */
+  const renderImage = (category: Category) =>
+    category.imageUrl ? (
       <Image
         accessibilityIgnoresInvertColors
         alt=""
         contentFit="cover"
         contentPosition="right"
         source={{ uri: category.imageUrl }}
-        style={{ height: CIRCLE -5, width: CIRCLE -5 }}
+        style={{ height: CIRCLE - 5, width: CIRCLE - 5 }}
         transition={200}
-  onError={(e) => console.log("IMAGE ERROR", e.error)}
-  onLoad={() => console.log("IMAGE LOADED")}
       />
     ) : (
       <Ionicons color={subtle as string} name="restaurant-outline" size={20} />
     );
-  }
-   
+
 
   return (
     <ScrollView
