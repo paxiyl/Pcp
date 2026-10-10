@@ -99,9 +99,7 @@ export const getOutstanding = async (): Promise<OutstandingSummary> => {
       ...outstandingFilter("riderSettlementId"),
       "driver.driverId": mongoose.trusted({ $exists: true }),
     } as QueryFilter<OrderDocument>)
-      .select(
-        "driver driverPayout paymentMethod codCollectedAt total updatedAt statusHistory",
-      )
+      .select("driver driverPayout paymentMethod codCollectedAt total updatedAt")
       .exec(),
     OrderModel.find(outstandingFilter("vendorSettlementId"))
       .select(

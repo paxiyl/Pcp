@@ -723,6 +723,17 @@ holding something worth stealing, and the gateway already does that properly.
 - Google sign-in in the mobile app is still unbuilt: `google-services.json` for
   this project carries an empty `oauth_client` array, so there is no client id
   to sign in against until one is created in the Firebase console.
+- **A partial refund does not net off settlement, and the right answer is a
+  business decision rather than a missing line of code.** A full refund cancels
+  the order, so it leaves settlement entirely. A partial one leaves the order
+  delivered and the stored `restaurantPayout` unchanged, so the shop is still
+  settled for the full amount. Which is correct depends on the payment method
+  and on how you actually operate: on a prepaid order we refunded from our own
+  gateway, so arguably the shop's payout should drop by the part they did not
+  deliver; on a cash order the shop handed the money back at the door
+  themselves, so netting it again would charge them twice. Pick a rule before
+  partial refunds become common, because either default is wrong for one of the
+  two cases.
 
 ### Still open — and what only you can do
 
