@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-nati
 import { useCSSVariable } from "uniwind";
 
 import { Screen } from "@/components/ui/screen";
+import { onlineUsable } from "@/features/payments/availability";
 import {
   usePaymentPreferences,
   useSetPaymentPreference,
@@ -62,6 +63,7 @@ export default function PaymentMethodsScreen() {
   ]);
 
   const { data, isLoading } = usePaymentPreferences();
+  const online = onlineUsable(data);
   const save = useSetPaymentPreference();
 
   const choose = (method: PaymentMethod) => {
@@ -135,10 +137,22 @@ export default function PaymentMethodsScreen() {
         <View accessibilityRole="radiogroup" className="gap-2 px-gutter">
           {ORDER.map((method) => {
             const option = byMethod.get(method);
-            const available = option?.available ?? true;
+            /*
+              The server's answer AND this build's. The server knows whether its
+              gateway has keys; only the app knows whether the SDK that opens
+              that gateway's sheet is compiled in. A row offered here on one
+              answer alone is a preference the customer cannot act on, which
+              they discover at the Pay button.
+            */
+            const available =
+              method === "cod" ? (option?.available ?? true) : (option?.available ?? true) && online;
             const selected = data.preferred === method && available;
             const copy = COPY[method];
-            const hint = available ? copy.hint : (option?.reason ?? "Not available right now");
+            const hint = available
+              ? copy.hint
+              : method === "cod"
+                ? (option?.reason ?? "Not available right now")
+                : (option?.reason ?? "This version of Raket cannot take online payment yet");
 
             return (
               <Pressable
@@ -201,10 +215,18 @@ export default function PaymentMethodsScreen() {
         ) : null}
 
         <View className="mx-gutter mt-3 flex-row gap-3 rounded-card bg-muted p-4">
-          <Ionicons color={muted as string} name="lock-closed-outline" size={20} />
+          <Ionicons
+            color={muted as string}
+            name={online ? "lock-closed-outline" : "time-outline"}
+            size={20}
+          />
           <Text className="flex-1 font-sans text-label text-text-secondary">
-            We store which kind of payment you prefer — never a card number or a UPI ID. Those stay
-            with Razorpay, who handle the payment itself.
+            {online
+              ? "We store which kind of payment you prefer — never a card number or a UPI ID. Those stay with the gateway, which handles the payment itself."
+              : // Said here rather than only on the greyed rows: somebody who
+                // opens this screen to set up UPI deserves to know where it
+                // stands, not just that the row will not take a tap.
+                "UPI, cards, netbanking and wallets are coming to Raket. Until then every order is cash on delivery, and we never store a card number or a UPI ID."}
           </Text>
         </View>
       </ScrollView>

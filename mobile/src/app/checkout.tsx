@@ -20,6 +20,7 @@ import { useCurrentUser } from "@/features/auth/use-auth";
 import { useDefaultAddress } from "@/features/location/use-addresses";
 import { usePaymentPreferences } from "@/features/payments/use-payment-preferences";
 import { openPaymentSheet } from "@/features/orders/payment-sheet";
+import { openingMethod, withBuildLimits } from "@/features/payments/availability";
 import { useCreateOrder, useSyncOrder, useVerifyPayment } from "@/features/orders/use-orders";
 import { formatEta, formatPrice } from "@/lib/format";
 import { toast } from "@/lib/sonner";
@@ -72,16 +73,25 @@ export default function CheckoutScreen() {
   // basket as empty.
   const vendor = basketData?.vendor ?? null;
   const totals = basketData?.totals;
-  const paymentOptions = basketData?.payment ?? { codAvailable: false, codMaxOrderValue: 0 };
+  /*
+    Narrowed by what this build can open before anything reads it. The server
+    answers for its own gateway and cannot know what is compiled in, so the two
+    answers are combined once, here.
+  */
+  const paymentOptions = withBuildLimits(
+    basketData?.payment ?? { codAvailable: false, codMaxOrderValue: 0, onlineAvailable: false },
+    paymentPreferences,
+  );
 
   // Checkout used to open on UPI for everyone, ignoring what the customer
-  // actually pays with. It opens on their own default now.
+  // actually pays with. It opens on their own default now — or on whichever
+  // side still works, because a default nobody can act on opens the picker with
+  // nothing selected at all.
   const preferredMethod = paymentPreferences?.preferred ?? "upi";
-  const method =
-    chosenMethod ??
-    // A cash default is no use on a basket over the cash ceiling: the picker
-    // would open with nothing selected at all.
-    (preferredMethod === "cod" && !paymentOptions.codAvailable ? "upi" : preferredMethod);
+  const opening = openingMethod(preferredMethod, paymentOptions);
+  const method = chosenMethod ?? opening ?? "cod";
+  /** Nothing can be paid: no gateway and no cash. Said out loud, not hidden. */
+  const nothingPayable = opening === null && (basketData?.basket?.items.length ?? 0) > 0;
 
   const contactPhone = phone || user?.phone || "";
   const deliveryInstructions = instructions || address?.instructions || "";
@@ -228,6 +238,7 @@ export default function CheckoutScreen() {
   };
 
   const belowMinimum = totals.belowMinimum;
+  const blocked = belowMinimum || nothingPayable;
 
   // Cash is not a payment, so the button must not claim to take one. Getting this
   // wrong is how a customer taps expecting a UPI sheet and gets a placed order.
@@ -454,6 +465,20 @@ export default function CheckoutScreen() {
             Minimum order for {vendor.name} is {formatPrice(totals.minOrder)}.
           </Text>
         ) : null}
+
+        {nothingPayable ? (
+          <View className="mx-5 mt-3 flex-row gap-3 rounded-card bg-muted p-4">
+            <Ionicons color={subtle as string} name="information-circle-outline" size={20} />
+            <Text className="flex-1 font-sans text-label text-text-secondary">
+              {paymentOptions.onlineUnavailableReason ??
+                "Online payment is not available yet"}
+              {paymentOptions.codUnavailableReason
+                ? `, and ${paymentOptions.codUnavailableReason.toLowerCase()}`
+                : ""}
+              . Your basket is saved — nothing is lost.
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
 
       <View
@@ -463,19 +488,19 @@ export default function CheckoutScreen() {
         <Pressable
           accessibilityLabel={ctaLabel}
           accessibilityRole="button"
-          accessibilityState={{ disabled: belowMinimum || paying }}
+          accessibilityState={{ disabled: blocked || paying }}
           className={`h-14 flex-row items-center justify-center rounded-input ${
-            belowMinimum || paying ? "bg-muted" : "bg-primary active:bg-primary-pressed"
+            blocked || paying ? "bg-muted" : "bg-primary active:bg-primary-pressed"
           }`}
-          disabled={belowMinimum || paying}
+          disabled={blocked || paying}
           onPress={placeOrder}
         >
           {paying ? (
-            <ActivityIndicator color={belowMinimum ? (subtle as string) : "#ffffff"} />
+            <ActivityIndicator color={blocked ? (subtle as string) : "#ffffff"} />
           ) : (
             <Text
               className={`font-heading text-body ${
-                belowMinimum ? "text-muted-foreground" : "text-primary-foreground"
+                blocked ? "text-muted-foreground" : "text-primary-foreground"
               }`}
             >
               {ctaLabel}

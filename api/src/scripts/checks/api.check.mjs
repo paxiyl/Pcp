@@ -418,9 +418,52 @@ record(
 await expectKeys("GET /addresses", "/addresses", ["addresses"], { token });
 await expectKeys("GET /basket", "/basket", ["basket", "totals", "payment"], { token });
 await expectKeys("GET /orders", "/orders", ["orders"], { token });
-await expectKeys("GET /payment-methods", "/payment-methods", ["preferred", "methods", "cod"], {
+const payment = await expectKeys(
+  "GET /payment-methods",
+  "/payment-methods",
+  ["preferred", "methods", "cod", "online"],
+  { token },
+);
+
+/*
+  No gateway keys in this environment, which is the state every deployment is in
+  before somebody adds them. Every non-cash method must therefore come back
+  unavailable WITH a reason: they used to come back `available: true` because
+  "the gateway handles them", which is true only once it has keys — and a
+  customer who chose UPI on that answer found out at the Pay button.
+*/
+record(
+  "no gateway configured is reported as such",
+  payment?.online?.available === false,
+  JSON.stringify(payment?.online),
+);
+record(
+  "every online method is unavailable with a reason",
+  (payment?.methods ?? [])
+    .filter((option) => option.method !== "cod")
+    .every((option) => option.available === false && typeof option.reason === "string"),
+  JSON.stringify((payment?.methods ?? []).filter((option) => option.method !== "cod")),
+);
+record(
+  "cash is still offered",
+  (payment?.methods ?? []).some((option) => option.method === "cod" && option.available === true),
+  JSON.stringify((payment?.methods ?? []).find((option) => option.method === "cod")),
+);
+record(
+  "the default is one the customer can act on",
+  payment?.preferred === "cod",
+  payment?.preferred,
+);
+
+const basketPayment = await expectKeys("GET /basket payment block", "/basket", ["payment"], {
   token,
 });
+
+record(
+  "the basket says so too, for checkout's picker",
+  basketPayment?.payment?.onlineAvailable === false,
+  JSON.stringify(basketPayment?.payment),
+);
 await expectKeys("GET /partner-applications/mine", "/partner-applications/mine", ["application"], {
   token,
 });

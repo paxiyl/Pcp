@@ -35,9 +35,20 @@ const customer = await UserModel.create({
   role: "customer",
 });
 
-/* Payment preferences default before anyone chooses. */
+/*
+  Payment preferences before anyone chooses. No gateway keys in this
+  environment, which is the state every deployment starts in — so the default
+  handed to a customer who has never chosen must be one that works, and UPI is
+  not it until somebody adds keys.
+*/
 let p = await prefs.getPaymentPreferences(customer._id.toString());
-check("default method", p.preferred, "upi");
+check("the default is one that works today", p.preferred, "cod");
+check("no gateway is reported as no gateway", p.online.available, false);
+check(
+  "and every online method says why it cannot be used",
+  p.methods.filter((o) => o.method !== "cod").every((o) => !o.available && o.reason),
+  true,
+);
 check("not yet explicit", p.isExplicit, false);
 check("five methods offered", p.methods.length, 5);
 check("cash offered by default policy", p.cod.available, true);
@@ -104,13 +115,28 @@ try {
   check("save with a token present", error.message, true);
 }
 
-/* A preference the policy forbids must not be handed back. */
+/*
+  A choice the policy currently forbids is still the customer's choice.
+
+  This used to assert that it was replaced, which made sense when the app took
+  `preferred` and opened checkout on it unconditionally. The app works out what
+  to open on now (`openingMethod`, checked in payment-availability.check.mjs),
+  so replacing it here would only mean forgetting what somebody asked for the
+  moment cash was switched off — and asking them to choose again when it came
+  back. What must be true is that the refusal travels with it.
+*/
 const { SettingsModel } = await import(`${api}/models/settings.model.ts`);
 // getCodPolicy already created the singleton, so upsert rather than insert.
 await SettingsModel.updateOne({ key: "platform" }, { $set: { codEnabled: false } }, { upsert: true });
 await prefs.setPreferredPaymentMethod(customer._id.toString(), "cod");
 p = await prefs.getPaymentPreferences(customer._id.toString());
-check("cash default dropped when cash is off", p.preferred, "upi");
+check("the cash choice is remembered", p.preferred, "cod");
+check("but cash is marked unavailable", p.cod.available, false);
+check(
+  "with a reason the screen can print",
+  typeof p.methods.find((o) => o.method === "cod")?.reason,
+  "string",
+);
 check("cash row marked unavailable", p.methods.find((m) => m.method === "cod").available, false);
 
 await mongoose.disconnect();

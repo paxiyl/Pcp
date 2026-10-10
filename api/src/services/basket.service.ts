@@ -18,7 +18,7 @@ import {
   AddBasketProductInput,
   BasketSettingsInput,
 } from "../validators/basket.validator";
-import { codAvailability } from "./payment.service";
+import { activeProvider, codAvailability, isProviderConfigured } from "./payment.service";
 import { getServiceFeeRate } from "./settings.service";
 
 const EMPTY_TOTALS: BasketTotals = {
@@ -125,9 +125,10 @@ const loadVendor = async (
   return { restaurant: null, store: null };
 };
 
-const NO_COD: BasketPaymentOptions = {
+const NO_PAYMENT: BasketPaymentOptions = {
   codAvailable: false,
   codMaxOrderValue: 0,
+  onlineAvailable: false,
 };
 
 const withTotals = async (basket: BasketDocument | null): Promise<BasketPayload> => {
@@ -142,15 +143,23 @@ const withTotals = async (basket: BasketDocument | null): Promise<BasketPayload>
 
   // Decided here rather than at checkout, so the picker can grey the option out
   // with a reason instead of accepting it and refusing on submit.
-  let payment = NO_COD;
+  let payment = NO_PAYMENT;
 
   if (basket && totals.total > 0) {
     const cod = await codAvailability(basket.userId.toString(), totals.total);
+    // Card and UPI need the gateway to have keys. Answered here for the same
+    // reason cash is: so the picker can grey a row out with a reason rather
+    // than accept it and refuse at the Pay button.
+    const online = isProviderConfigured(activeProvider());
 
     payment = {
       codAvailable: cod.available,
       codMaxOrderValue: cod.maxOrderValue,
       codUnavailableReason: cod.reason,
+      onlineAvailable: online,
+      onlineUnavailableReason: online
+        ? undefined
+        : "Online payment is not switched on yet — cash on delivery works today",
     };
   }
 

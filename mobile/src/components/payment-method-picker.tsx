@@ -48,9 +48,15 @@ export function PaymentMethodPicker({ value, onChange, options }: Props) {
   return (
     <View accessibilityRole="radiogroup" className="gap-2">
       {ROWS.map((row) => {
-        const disabled = row.method === "cod" && !options.codAvailable;
+        // Cash is ours to refuse; the other four need a gateway with keys AND a
+        // build that carries its SDK. Both answers arrive on `options`, already
+        // combined, so this stays the explanation rather than a second guard.
+        const disabled =
+          row.method === "cod" ? !options.codAvailable : !options.onlineAvailable;
         const selected = row.method === value && !disabled;
-        const hint = disabled ? (options.codUnavailableReason ?? "Not available") : row.hint;
+        const reason =
+          row.method === "cod" ? options.codUnavailableReason : options.onlineUnavailableReason;
+        const hint = disabled ? (reason ?? "Not available") : row.hint;
 
         return (
           <Pressable

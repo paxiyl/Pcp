@@ -331,6 +331,10 @@ export type BasketPaymentOptions = {
   codMaxOrderValue: number;
   /** Shown beside a disabled cash option. Absent when it is available. */
   codUnavailableReason?: string;
+  /** False when the gateway has no keys on this deployment. */
+  onlineAvailable: boolean;
+  /** Shown beside the disabled card and UPI rows. Absent when they work. */
+  onlineUnavailableReason?: string;
 };
 
 type BasketResponse = {
@@ -1015,6 +1019,13 @@ export type PaymentPreferences = {
   isExplicit: boolean;
   methods: PaymentMethodOption[];
   cod: { maxOrderValue: number; available: boolean; reason?: string };
+  /**
+   * Which gateway would take a card or UPI payment, and whether it is set up.
+   *
+   * The provider matters as much as the answer: a method the server can take is
+   * still unusable if this build cannot open that provider's sheet.
+   */
+  online: { available: boolean; provider: "razorpay" | "stripe" | "cod" };
 };
 
 type PaymentPreferencesResponse = { message: string; data: PaymentPreferences };

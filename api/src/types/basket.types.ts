@@ -51,6 +51,10 @@ export type BasketPaymentOptions = {
   codMaxOrderValue: number;
   /** Shown next to a disabled cash option. Absent when it is available. */
   codUnavailableReason?: string;
+  /** False when the gateway has no keys on this deployment. */
+  onlineAvailable: boolean;
+  /** Shown next to the disabled card and UPI rows. Absent when they work. */
+  onlineUnavailableReason?: string;
 };
 
 export type BasketPayload = {

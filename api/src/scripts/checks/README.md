@@ -38,6 +38,16 @@ caught by reading:
   fetched four result groups and returned two, and the two halves of that
   contract live in different codebases and agree only by hand.
 
+- **Whether a customer can pay.** `payment-availability.check.mjs` runs the
+  app's half of that question (`mobile/src/features/payments/availability.ts`,
+  import-free for this reason) over every combination of gateway configuration,
+  cash ceiling and compiled-in SDK. Both sides used to say yes unconditionally:
+  the server returned `available: true` for every non-cash method because "the
+  gateway handles them", and the app's Razorpay sheet was a stub that returned a
+  failure. So a customer set UPI as their default, filled in an address, a phone
+  number and a delivery note, and found out at the Pay button. The server's half
+  is asserted over the wire in `api.check.mjs`.
+
 - **Money crossing the boundary.** `money.check.mjs` runs `parseRupees` and
   `formatPrice` against each other, including the round trip. Neither fails
   loudly: read "120" as 120 instead of 12000 and a shop sells atta for ₹1.20
