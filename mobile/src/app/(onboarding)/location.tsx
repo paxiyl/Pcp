@@ -113,7 +113,7 @@ export default function LocationScreen() {
             entering={enter()}
           >
             <Text className="font-sans text-body text-foreground">
-              We couldn't work out where you are. Try again, or enter your address by hand.
+              We could not work out where you are. Try again, or enter your address by hand.
             </Text>
           </Animated.View>
         ) : null}

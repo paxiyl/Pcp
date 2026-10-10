@@ -3,15 +3,13 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  interpolate,
   interpolateColor,
   runOnJS,
   useAnimatedStyle,
-  withTiming,
 } from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 
-import { MODE_TIMING, useDeliveryMode } from "@/features/mode/delivery-mode";
+import { useDeliveryMode } from "@/features/mode/delivery-mode";
 
 /** uniwind can hand back a number or nothing; the interpolators need a string. */
 const asColor = (value: string | number | undefined, fallback: string): string =>
@@ -30,7 +28,7 @@ const PADDING = 4;
  * rather than like a page load.
  */
 export function ModeSwitch() {
-  const { mode, progress, setMode } = useDeliveryMode();
+  const { mode, progress, scrub, setMode } = useDeliveryMode();
   const [trackWidth, setTrackWidth] = useState(0);
 
   const [brandVar, foodVar, surfaceVar, mutedVar] = useCSSVariable([
@@ -72,7 +70,7 @@ export function ModeSwitch() {
 
       const start = mode === "food" ? 1 : 0;
 
-      progress.value = Math.min(1, Math.max(0, start + event.translationX / half));
+      scrub(start + event.translationX / half);
     })
     .onEnd((event) => {
       if (half <= 0) return;
@@ -82,7 +80,8 @@ export function ModeSwitch() {
       // Velocity counts, so a quick flick commits even if it travelled little.
       const next = landed + event.velocityX / half / 8 > 0.5 ? "food" : "grocery";
 
-      progress.value = withTiming(next === "food" ? 1 : 0, MODE_TIMING);
+      // setMode animates the thumb home as well as recording the choice, so a
+      // drag that ends where it started is still tidied up.
       runOnJS(setMode)(next);
     });
 

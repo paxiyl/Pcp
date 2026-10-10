@@ -21,23 +21,45 @@ import {
   useDelivery,
   usePickUpDelivery,
 } from "@/features/driver/use-driver";
+import type { OrderPoint } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
+import { distanceKm, formatAddress, formatDistance, openDirections } from "@/lib/navigation";
 import { toast } from "@/lib/sonner";
 
 const CODE_LENGTH = 4;
 
+/**
+ * One leg of the run. The arrow is the whole point of the card for a rider on a
+ * bike: it hands the stop straight to the Maps app for turn-by-turn, rather than
+ * making them copy an address across by hand at the kerb.
+ */
 const Stop = ({
   address,
+  distance,
   icon,
   label,
+  point,
   title,
 }: {
   address: string;
+  distance?: string;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  /** Preferred over the written address, which may not geocode. */
+  point?: OrderPoint;
   title: string;
 }) => {
   const [primary] = useCSSVariable(["--color-primary"]);
+
+  const navigate = async () => {
+    const opened = await openDirections(point, address || title);
+
+    if (!opened) {
+      toast.error("Nothing to navigate to", {
+        description: `This order has no ${label.toLowerCase()} location saved.`,
+      });
+    }
+  };
 
   return (
     <View className="mx-5 mb-3 flex-row items-center gap-4 rounded-card border border-border bg-card p-4">
@@ -46,12 +68,27 @@ const Stop = ({
       </View>
 
       <View className="flex-1">
-        <Text className="font-heading text-label text-primary">{label}</Text>
+        <View className="flex-row items-center gap-2">
+          <Text className="font-heading text-label text-primary">{label}</Text>
+          {distance ? (
+            <Text className="font-sans text-label text-muted-foreground">· {distance}</Text>
+          ) : null}
+        </View>
         <Text className="font-heading text-section text-foreground">{title}</Text>
         {address ? (
           <Text className="font-sans text-body text-muted-foreground">{address}</Text>
         ) : null}
       </View>
+
+      <Pressable
+        accessibilityLabel={`Navigate to the ${label.toLowerCase()}`}
+        accessibilityRole="button"
+        className="h-12 w-12 items-center justify-center rounded-pill bg-primary active:opacity-90"
+        hitSlop={6}
+        onPress={navigate}
+      >
+        <Ionicons color="#ffffff" name="navigate" size={20} />
+      </Pressable>
     </View>
   );
 };
@@ -137,9 +174,12 @@ export default function DeliveryDetailScreen() {
   // never told either way has to guess, and guessing wrong costs them the money.
   const cashToCollect = order.paymentMethod === "cod" && !order.codCollectedAt;
 
-  const dropOff = [order.deliveryAddress.line1, order.deliveryAddress.postcode]
-    .filter(Boolean)
-    .join(", ");
+  const dropOff = formatAddress(order.deliveryAddress);
+  // How far the rider still has to ride, once they are carrying the order.
+  const legToDropOff =
+    order.restaurantLocation && order.deliveryLocation
+      ? formatDistance(distanceKm(order.restaurantLocation, order.deliveryLocation))
+      : undefined;
 
   const busy = claim.isPending || pickUp.isPending || complete.isPending;
   const onError = (error: Error) =>
@@ -201,10 +241,18 @@ export default function DeliveryDetailScreen() {
           address={order.restaurantAddress ?? ""}
           icon="storefront-outline"
           label="Pickup"
+          point={order.restaurantLocation}
           title={order.restaurantName}
         />
 
-        <Stop address="" icon="location-outline" label="Drop-off" title={dropOff} />
+        <Stop
+          address={order.deliveryAddress.instructions ?? ""}
+          distance={legToDropOff}
+          icon="location-outline"
+          label="Drop-off"
+          point={order.deliveryLocation}
+          title={dropOff}
+        />
 
         <View className="mx-5 overflow-hidden rounded-card border border-border bg-card">
           {/* The rider checks the bag against this before leaving the kitchen. */}

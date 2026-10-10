@@ -8,10 +8,11 @@ import { useCSSVariable } from "uniwind";
 
 import { DeliveryCodeCard } from "@/components/delivery-code-card";
 import { OrderProgress } from "@/components/order-progress";
+import { OrderRouteCard } from "@/components/order-route-card";
 import { OrderTrackingSkeleton } from "@/components/order-tracking-skeleton";
-import { OrderRouteMap } from "@/components/order-route-map";
 import { useOrder } from "@/features/orders/use-orders";
 import type { OrderStatus } from "@/lib/api";
+import { useNow } from "@/lib/clock";
 import { formatPrice } from "@/lib/format";
 import { toast } from "@/lib/sonner";
 
@@ -46,6 +47,8 @@ export default function OrderTrackingScreen() {
 
   // The rider moves while the screen is open, so keep this one fresh.
   const { data: order, isLoading } = useOrder(id ?? "", { refetchInterval: 15_000 });
+  // The ETA counts down between those refreshes rather than sitting still.
+  const now = useNow(30_000);
   const [summaryOpen, setSummaryOpen] = useState(false);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace("/orders"));
@@ -61,7 +64,7 @@ export default function OrderTrackingScreen() {
     );
   }
 
-  const minutes = Math.ceil((new Date(order.estimatedDeliveryAt).getTime() - Date.now()) / 60_000);
+  const minutes = Math.ceil((new Date(order.estimatedDeliveryAt).getTime() - now) / 60_000);
   const spread = Math.max(order.prepTimeMaxMinutes - order.prepTimeMinMinutes, 1);
   const arrival =
     order.status === "delivered"
@@ -145,7 +148,7 @@ export default function OrderTrackingScreen() {
           <OrderProgress order={order} />
 
           <View className="mt-5 flex-1">
-            <OrderRouteMap order={order} />
+            <OrderRouteCard order={order} />
           </View>
         </>
       )}

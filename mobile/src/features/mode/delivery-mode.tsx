@@ -35,8 +35,18 @@ type DeliveryModeValue = {
    * 0 is grocery, 1 is food. Every colour and position that animates reads
    * this, so a drag can scrub the whole screen mid-gesture instead of only
    * animating once the finger lifts.
+   *
+   * Read-only to everyone outside this file. Writes go through `scrub` and
+   * `setMode`, which keeps the React state and the animation from drifting
+   * apart — and keeps one place responsible for both.
    */
   progress: SharedValue<number>;
+  /**
+   * Drives the animation straight from a finger, as a worklet, so a drag paints
+   * on the UI thread without a round trip through JS. Clamped: a drag past
+   * either end should stop, not overshoot into colours that do not exist.
+   */
+  scrub: (fraction: number) => void;
 };
 
 const DeliveryModeContext = createContext<DeliveryModeValue | null>(null);
@@ -57,7 +67,7 @@ export function DeliveryModeProvider({ children }: { children: ReactNode }) {
         setModeState("food");
         // No animation on restore: this is the screen's starting state, not a
         // change the customer just made.
-        progress.value = 1;
+        progress.set(1);
       })
       .catch(() => undefined);
 
@@ -66,16 +76,26 @@ export function DeliveryModeProvider({ children }: { children: ReactNode }) {
     };
   }, [progress]);
 
+  const scrub = useCallback(
+    (fraction: number) => {
+      "worklet";
+
+      progress.set(Math.min(1, Math.max(0, fraction)));
+    },
+    [progress],
+  );
+
+  /**
+   * Animates to a mode unconditionally, even when it is the mode we are already
+   * in. A drag that wanders out and comes back leaves the thumb under the
+   * finger, and something has to send it home; returning early there would
+   * strand it mid-track.
+   */
   const setMode = useCallback(
     (next: DeliveryMode) => {
-      setModeState((current) => {
-        if (current === next) return current;
-
-        progress.value = withTiming(next === "food" ? 1 : 0, MODE_TIMING);
-        void SecureStore.setItemAsync(MODE_KEY, next).catch(() => undefined);
-
-        return next;
-      });
+      progress.set(withTiming(next === "food" ? 1 : 0, MODE_TIMING));
+      setModeState(next);
+      void SecureStore.setItemAsync(MODE_KEY, next).catch(() => undefined);
     },
     [progress],
   );
@@ -85,8 +105,8 @@ export function DeliveryModeProvider({ children }: { children: ReactNode }) {
   }, [mode, setMode]);
 
   const value = useMemo(
-    () => ({ mode, progress, setMode, toggle }),
-    [mode, progress, setMode, toggle],
+    () => ({ mode, progress, scrub, setMode, toggle }),
+    [mode, progress, scrub, setMode, toggle],
   );
 
   return <DeliveryModeContext.Provider value={value}>{children}</DeliveryModeContext.Provider>;

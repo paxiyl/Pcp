@@ -1,15 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   Text,
   type TextInput,
-  useWindowDimensions,
   View,
 } from "react-native";
 import Animated from "react-native-reanimated";
@@ -25,15 +24,16 @@ import {
   useDefaultAddress,
   useUpdateAddress,
 } from "@/features/location/use-addresses";
+import { useDeliveryLocation } from "@/features/location/use-delivery-location";
 import type { AddressLabel } from "@/lib/api";
 import { useEnter } from "@/lib/motion";
 import { toast } from "@/lib/sonner";
 
-const mapPreview = require("@/assets/images/app-imgs/map-card.png");
-
 const LABELS = ["Home", "Work", "Other"] as const;
 
 type Field = "line1" | "city" | "postcode";
+
+type Pin = { latitude: number; longitude: number };
 
 export default function AddressScreen() {
   const router = useRouter();
@@ -54,9 +54,13 @@ export default function AddressScreen() {
   const cityRef = useRef<TextInput>(null);
   const postcodeRef = useRef<TextInput>(null);
   const instructionsRef = useRef<TextInput>(null);
-  const [foreground] = useCSSVariable(["--color-foreground"]);
-  // Screen gutter is px-5 on both sides, so the map fills the content column.
-  const mapWidth = useWindowDimensions().width - 40;
+  const [foreground, primary, success, subtle] = useCSSVariable([
+    "--color-foreground",
+    "--color-primary",
+    "--color-success",
+    "--color-subtle-foreground",
+  ]);
+  const { requestLocation, status: locating } = useDeliveryLocation();
 
   /**
    * Three ways in: an id edits that address, "new" starts a blank one, and
@@ -79,6 +83,17 @@ export default function AddressScreen() {
   });
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
 
+  /**
+   * The coordinates, held separately from the text fields because they are not
+   * derived from them. Without a pin the rider's navigation has to geocode a
+   * handwritten Hindaun address, which often lands on the wrong lane.
+   */
+  const [pin, setPin] = useState<Pin | null>(
+    params.latitude && params.longitude
+      ? { latitude: Number(params.latitude), longitude: Number(params.longitude) }
+      : null,
+  );
+
   const hydrated = useRef<string>("");
 
   // The list resolves after mount, so an edit fills its fields once it lands.
@@ -93,6 +108,13 @@ export default function AddressScreen() {
       line1: params.line1 ?? saved.line1,
       postcode: params.postcode ?? saved.postcode,
     });
+
+    // GeoJSON order is [longitude, latitude].
+    const coordinates = saved.location?.coordinates;
+
+    setPin((current) =>
+      current ?? (coordinates ? { latitude: coordinates[1], longitude: coordinates[0] } : null),
+    );
   }, [params.city, params.line1, params.postcode, saved]);
 
   const setField = (field: keyof typeof values, value: string) => {
@@ -100,6 +122,35 @@ export default function AddressScreen() {
     setErrors((current) =>
       field in current ? { ...current, [field as Field]: undefined } : current,
     );
+  };
+
+  /**
+   * Fills the form from GPS and keeps the coordinates. Anything the reverse
+   * geocode could not name is left for the customer rather than overwritten
+   * with a blank — a half-resolved address is still worth having a pin for.
+   */
+  const usePin = async () => {
+    const resolved = await requestLocation();
+
+    if (!resolved) {
+      toast.error("We could not get your location", {
+        description:
+          locating === "denied"
+            ? "Allow location access for Raket in your phone settings, or type the address below."
+            : "Check that location is switched on, or type the address below.",
+      });
+
+      return;
+    }
+
+    setPin({ latitude: resolved.latitude, longitude: resolved.longitude });
+    setValues((current) => ({
+      ...current,
+      city: resolved.city || current.city,
+      line1: resolved.line1 || current.line1,
+      postcode: resolved.postcode || current.postcode,
+    }));
+    setErrors({});
   };
 
   const handleSave = () => {
@@ -118,9 +169,9 @@ export default function AddressScreen() {
       instructions: values.instructions.trim() || undefined,
       isDefault: saved ? saved.isDefault : true,
       label,
-      latitude: params.latitude ? Number(params.latitude) : saved?.location?.coordinates[1],
+      latitude: pin?.latitude,
       line1: values.line1.trim(),
-      longitude: params.longitude ? Number(params.longitude) : saved?.location?.coordinates[0],
+      longitude: pin?.longitude,
       postcode: values.postcode.trim(),
     };
 
@@ -185,7 +236,7 @@ export default function AddressScreen() {
               label="Address line 1"
               onChangeText={(value) => setField("line1", value)}
               onSubmitEditing={() => cityRef.current?.focus()}
-              placeholder="14 Bramley Road"
+              placeholder="House 24, Bazaar Road"
               returnKeyType="next"
               value={values.line1}
             />
@@ -195,19 +246,20 @@ export default function AddressScreen() {
               label="City"
               onChangeText={(value) => setField("city", value)}
               onSubmitEditing={() => postcodeRef.current?.focus()}
-              placeholder="London"
+              placeholder="Hindaun City"
               ref={cityRef}
               returnKeyType="next"
               value={values.city}
             />
             <TextField
-              autoCapitalize="characters"
               autoCorrect={false}
               error={errors.postcode}
               label="Postcode"
               onChangeText={(value) => setField("postcode", value)}
+              keyboardType="number-pad"
+              maxLength={6}
               onSubmitEditing={() => instructionsRef.current?.focus()}
-              placeholder="E17 6QT"
+              placeholder="322230"
               ref={postcodeRef}
               returnKeyType="next"
               value={values.postcode}
@@ -216,22 +268,50 @@ export default function AddressScreen() {
               label="Delivery instructions"
               onChangeText={(value) => setField("instructions", value)}
               onSubmitEditing={handleSave}
-              placeholder="Ring the top bell"
+              placeholder="Blue gate, ring the bell"
               ref={instructionsRef}
               returnKeyType="done"
               value={values.instructions}
             />
           </Animated.View>
 
+          {/*
+            A real pin, not a picture of one. This used to be a decorative map
+            PNG, which told the customer nothing and gave the rider nothing.
+          */}
           <Animated.View className="mt-7" entering={enter()}>
-            <Image
-              accessibilityIgnoresInvertColors
-              alt=""
-              contentFit="cover"
-              source={mapPreview}
-              style={{ borderRadius: 16, height: mapWidth / 3.2, width: mapWidth }}
-              transition={200}
-            />
+            <Pressable
+              accessibilityLabel={pin ? "Update the pinned location" : "Pin my current location"}
+              accessibilityRole="button"
+              accessibilityState={{ busy: locating === "requesting" }}
+              className="flex-row items-center gap-3 rounded-card border border-border bg-card p-4 active:bg-muted"
+              disabled={locating === "requesting"}
+              onPress={usePin}
+            >
+              <View
+                className="h-11 w-11 items-center justify-center rounded-pill"
+                style={{ backgroundColor: pin ? (success as string) : (primary as string) }}
+              >
+                {locating === "requesting" ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Ionicons color="#ffffff" name={pin ? "checkmark" : "locate"} size={20} />
+                )}
+              </View>
+
+              <View className="flex-1">
+                <Text className="font-heading text-body text-foreground">
+                  {pin ? "Location pinned" : "Pin my location"}
+                </Text>
+                <Text className="font-sans text-label text-muted-foreground">
+                  {pin
+                    ? `${pin.latitude.toFixed(5)}, ${pin.longitude.toFixed(5)} — your rider navigates straight here.`
+                    : "Lets your rider navigate to the exact spot instead of guessing from the address."}
+                </Text>
+              </View>
+
+              <Ionicons color={subtle as string} name="chevron-forward" size={18} />
+            </Pressable>
           </Animated.View>
 
           <Animated.View className="mt-7" entering={enter()}>
