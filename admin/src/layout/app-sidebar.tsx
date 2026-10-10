@@ -1,4 +1,5 @@
 import {
+  BanknoteIcon,
   BikeIcon,
   ClipboardListIcon,
   ChevronsUpDownIcon,
@@ -56,6 +57,7 @@ const NAV = [
   { icon: BikeIcon, label: "Riders", to: "/riders" },
   { icon: ClipboardListIcon, label: "Applications", to: "/applications" },
   { icon: SearchXIcon, label: "What people want", to: "/demand" },
+  { icon: BanknoteIcon, label: "Settlements", to: "/settlements" },
   { icon: ImageIcon, label: "Banners", to: "/banners" },
   { icon: SettingsIcon, label: "Settings", to: "/settings" },
 ];

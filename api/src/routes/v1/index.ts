@@ -18,6 +18,7 @@ import { paymentMethodRoutes } from "./payment-preference.route";
 import { dishRoutes, restaurantRoutes } from "./restaurant.route";
 import { adminDemandRoutes, searchRoutes } from "./search.route";
 import { settingsRoutes } from "./settings.route";
+import { settlementRoutes } from "./settlement.route";
 import { adminStoreOwnerRoutes } from "./admin-store-owner.route";
 import {
   adminApplicationRoutes,
@@ -55,6 +56,7 @@ routes.use("/products", productRoutes);
 routes.use("/product-categories", productCategoryRoutes);
 routes.use("/search", searchRoutes);
 routes.use("/admin/settings", settingsRoutes);
+routes.use("/admin/settlements", settlementRoutes);
 routes.use("/admin/analytics", analyticsRoutes);
 routes.use("/admin/banners", adminBannerRoutes);
 routes.use("/admin/categories", adminCategoryRoutes);

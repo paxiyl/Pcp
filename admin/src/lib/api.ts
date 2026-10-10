@@ -1074,3 +1074,85 @@ type ImagePresetsResponse = {
 
 export const getImagePresetsQueryFn = async (): Promise<ImagePresetsResponse> =>
   API.get("/image-presets");
+
+/* Settlements — who owes whom, and the record of what was handed over */
+
+export type RiderBalance = {
+  riderId: string;
+  name: string;
+  phone?: string;
+  orderCount: number;
+  cashCollected: number;
+  earnings: number;
+  /** Positive: the rider owes us. Negative: we owe the rider. */
+  net: number;
+  oldestAt?: string;
+};
+
+export type VendorBalance = {
+  vendorId: string;
+  kind: "store" | "restaurant";
+  name: string;
+  orderCount: number;
+  goodsValue: number;
+  commission: number;
+  /** What we owe the shop, after commission. */
+  net: number;
+  oldestAt?: string;
+};
+
+export type OutstandingResponse = {
+  message: string;
+  data: {
+    riders: RiderBalance[];
+    vendors: VendorBalance[];
+    totals: { cashWithRiders: number; owedToRiders: number; owedToVendors: number };
+  };
+};
+
+export type Settlement = {
+  _id: string;
+  party: "rider" | "store" | "restaurant";
+  partyName: string;
+  orderCount: number;
+  cashCollected: number;
+  riderEarnings: number;
+  goodsValue: number;
+  commission: number;
+  amount: number;
+  direction: "incoming" | "outgoing";
+  note?: string;
+  settledBy: { _id: string; name: string; email: string } | string;
+  settledAt: string;
+};
+
+type SettlementHistoryResponse = { message: string; data: { settlements: Settlement[] } };
+
+export const getOutstandingQueryFn = async (): Promise<OutstandingResponse> =>
+  API.get("/admin/settlements/outstanding");
+
+export const getSettlementHistoryQueryFn = async (
+  party?: Settlement["party"],
+): Promise<SettlementHistoryResponse> =>
+  API.get("/admin/settlements/history", { params: party ? { party } : undefined });
+
+export const settleRiderMutationFn = async (input: {
+  riderId: string;
+  expectedNet: number;
+  note?: string;
+}): Promise<{ message: string; data: { settlement: Settlement } }> =>
+  API.post(`/admin/settlements/riders/${input.riderId}`, {
+    expectedNet: input.expectedNet,
+    note: input.note,
+  });
+
+export const settleVendorMutationFn = async (input: {
+  kind: "store" | "restaurant";
+  vendorId: string;
+  expectedNet: number;
+  note?: string;
+}): Promise<{ message: string; data: { settlement: Settlement } }> =>
+  API.post(`/admin/settlements/vendors/${input.kind}/${input.vendorId}`, {
+    expectedNet: input.expectedNet,
+    note: input.note,
+  });

@@ -167,6 +167,17 @@ export interface OrderDocument extends Document {
   codAmountDue?: number;
   codCollectedAt?: Date;
 
+  /**
+   * Settlement, tracked as two independent legs.
+   *
+   * The same order is squared up with the rider (who may be holding its cash)
+   * and with the shop (who is owed for its goods) at different times and in
+   * different directions, so one flag could never describe both. An unset leg
+   * is money still outstanding.
+   */
+  riderSettlementId?: Types.ObjectId;
+  vendorSettlementId?: Types.ObjectId;
+
   /** How much has been refunded, in paise. Supports partial refunds. */
   refundedAmount?: number;
   refundedAt?: Date;
@@ -303,6 +314,12 @@ const orderSchema = new Schema<OrderDocument>(
 
     codAmountDue: { type: Number, min: 0 },
     codCollectedAt: { type: Date },
+    // Not sparse, and indexed as a compound below rather than here. The
+    // settlement query is "delivered and not yet settled" — $exists: false —
+    // and a sparse index omits exactly the documents that query wants, so it
+    // would be unusable for the one read it exists to serve.
+    riderSettlementId: { type: Schema.Types.ObjectId, ref: "Settlement" },
+    vendorSettlementId: { type: Schema.Types.ObjectId, ref: "Settlement" },
 
     refundedAmount: { type: Number, min: 0 },
     refundedAt: { type: Date },
@@ -321,6 +338,12 @@ const orderSchema = new Schema<OrderDocument>(
 );
 
 orderSchema.index({ userId: 1, createdAt: -1 });
+
+// The two settlement reads, each "delivered and not yet settled on this leg".
+// The settlement id leads so an unsettled scan is bounded by the null entries
+// rather than by every delivered order ever placed.
+orderSchema.index({ riderSettlementId: 1, status: 1, "driver.driverId": 1 });
+orderSchema.index({ vendorSettlementId: 1, status: 1 });
 
 /**
  * `restaurantId` was `required: true`. It cannot stay that way now an order may

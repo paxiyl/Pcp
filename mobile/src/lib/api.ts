@@ -449,7 +449,17 @@ export type DeliveryPayout = {
 
 export type Delivery = { order: Order; payout: DeliveryPayout };
 
-export type DriverSummary = { deliveries: number; earnings: number; isOnline: boolean };
+export type DriverSummary = {
+  deliveries: number;
+  earnings: number;
+  isOnline: boolean;
+  /**
+   * Cash this rider is holding that belongs to the office, less the earnings
+   * they keep out of it. Negative means the office owes them.
+   */
+  cashToHandOver: number;
+  unsettledDeliveries: number;
+};
 
 type DriverHomeResponse = {
   message: string;

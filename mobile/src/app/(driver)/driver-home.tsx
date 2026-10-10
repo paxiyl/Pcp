@@ -188,6 +188,41 @@ export default function DriverHomeScreen() {
           <DriverHomeSkeleton />
         ) : (
           <>
+            {/*
+              A rider carrying somebody else's money should see the figure every
+              time they open the app, not when they think to go looking for it.
+              Above the job list for that reason.
+            */}
+            {summary && summary.cashToHandOver > 0 ? (
+              <View className="mx-5 mb-4 flex-row items-center gap-3 rounded-card bg-warning-soft p-4">
+                <Ionicons color={warning as string} name="wallet-outline" size={24} />
+                <View className="flex-1">
+                  <Text className="font-title text-section text-warning">
+                    {formatPrice(summary.cashToHandOver)} to hand in
+                  </Text>
+                  <Text className="font-sans text-label text-text-secondary">
+                    Cash you collected on {summary.unsettledDeliveries}{" "}
+                    {summary.unsettledDeliveries === 1 ? "delivery" : "deliveries"}, after your
+                    earnings. Hand it to the office and they will mark it settled.
+                  </Text>
+                </View>
+              </View>
+            ) : summary && summary.cashToHandOver < 0 ? (
+              <View className="mx-5 mb-4 flex-row items-center gap-3 rounded-card bg-success-soft p-4">
+                <Ionicons color={success as string} name="cash-outline" size={24} />
+                <View className="flex-1">
+                  <Text className="font-title text-section text-success">
+                    {formatPrice(-summary.cashToHandOver)} owed to you
+                  </Text>
+                  <Text className="font-sans text-label text-text-secondary">
+                    Earnings on {summary.unsettledDeliveries}{" "}
+                    {summary.unsettledDeliveries === 1 ? "delivery" : "deliveries"} not yet paid
+                    out.
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
             {data && data.active.length > 0 ? (
               <>
                 <Text className="mx-5 mb-3 font-heading text-section text-foreground">

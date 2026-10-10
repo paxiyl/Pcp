@@ -17,6 +17,7 @@ import { RestaurantDetailPage } from "@/pages/restaurants/restaurant-detail-page
 import { RestaurantsPage } from "@/pages/restaurants/restaurants-page";
 import { RidersPage } from "@/pages/riders/riders-page";
 import { SettingsPage } from "@/pages/settings/settings-page";
+import { SettlementsPage } from "@/pages/settlements/settlements-page";
 import { StoreDetailPage } from "@/pages/stores/store-detail-page";
 import { ProductCategoriesPage } from "@/pages/stores/product-categories-page";
 import { StoreOwnersPage } from "@/pages/stores/store-owners-page";
@@ -58,6 +59,7 @@ export default function App() {
               <Route path="/stores/:storeSlug" element={<StoreDetailPage />} />
               <Route path="/riders" element={<RidersPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settlements" element={<SettlementsPage />} />
             </Route>
           </Route>
 

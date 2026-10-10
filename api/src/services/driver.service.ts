@@ -229,20 +229,52 @@ export const setOnline = async (driver: UserDocument, isOnline: boolean): Promis
   return isOnline;
 };
 
-/** What the rider has earned since midnight, from their own completed runs. */
+/**
+ * Today's earnings, and the running balance with the office.
+ *
+ * Two different windows on purpose. Earnings are "since midnight", which is how
+ * a rider thinks about a shift. The cash balance is every delivery not yet
+ * settled, however old — money owed does not reset because the clock did, and a
+ * figure that quietly cleared itself overnight would be worse than none.
+ */
 export const todaySummary = async (driver: UserDocument): Promise<DriverSummary> => {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const orders = await OrderModel.find({
-    "driver.driverId": driver._id,
-    status: "delivered",
-    updatedAt: mongoose.trusted({ $gte: startOfDay }),
-  }).exec();
+  const [today, unsettled] = await Promise.all([
+    OrderModel.find({
+      "driver.driverId": driver._id,
+      status: "delivered",
+      updatedAt: mongoose.trusted({ $gte: startOfDay }),
+    }).exec(),
+    OrderModel.find({
+      "driver.driverId": driver._id,
+      riderSettlementId: mongoose.trusted({ $exists: false }),
+      status: "delivered",
+    })
+      .select("driverPayout paymentMethod codCollectedAt total")
+      .exec(),
+  ]);
+
+  // Only cash actually taken counts. A cash order whose collection was never
+  // stamped was not paid at the door, and billing the rider for it would be
+  // charging them for money they never held.
+  const collected = unsettled.reduce(
+    (total, order) =>
+      total +
+      (order.paymentMethod === "cod" && order.codCollectedAt ? (order.total ?? 0) : 0),
+    0,
+  );
+  const owedToRider = unsettled.reduce(
+    (total, order) => total + (order.driverPayout?.total ?? 0),
+    0,
+  );
 
   return {
-    deliveries: orders.length,
-    earnings: orders.reduce((total, order) => total + (order.driverPayout?.total ?? 0), 0),
+    cashToHandOver: collected - owedToRider,
+    deliveries: today.length,
+    earnings: today.reduce((total, order) => total + (order.driverPayout?.total ?? 0), 0),
     isOnline: driver.isOnline,
+    unsettledDeliveries: unsettled.length,
   };
 };
