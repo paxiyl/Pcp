@@ -511,6 +511,24 @@ export type AddressInput = {
 export const registerMutationFn = async (input: RegisterInput): Promise<AuthResponse> =>
   API.post("/auth/register", input);
 
+/**
+ * Trades a Google ID token for one of our sessions.
+ *
+ * `intendedRole` only chooses which experience to open, exactly as on a
+ * password login — the server decides the actual role, and a brand-new Google
+ * account is always a customer.
+ */
+export const googleSignInMutationFn = async (input: {
+  idToken: string;
+  intendedRole?: AppRole;
+}): Promise<AuthResponse> => API.post("/auth/google", input);
+
+type AuthProvidersResponse = { message: string; data: { google: boolean } };
+
+/** Lets the app hide the Google button rather than offer one that cannot work. */
+export const getAuthProvidersQueryFn = async (): Promise<AuthProvidersResponse> =>
+  API.get("/auth/providers");
+
 /* Store owner */
 
 export type StoreOwnerOverview = {

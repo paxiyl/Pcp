@@ -24,7 +24,7 @@ import { createProduct, deleteProduct, updateProduct } from "./store.service";
 export const resolveOwnStore = async (user: UserDocument): Promise<StoreDocument> => {
   if (!user.storeId) {
     throw new ForbiddenException(
-      "This account is not linked to a shop yet. Ask OnlineMall support to connect it.",
+      "This account is not linked to a shop yet. Ask Raket support to connect it.",
     );
   }
 

@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,7 +14,7 @@ import Animated from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 
 import { Button } from "@/components/ui/button";
-import { GoogleIcon } from "@/components/ui/google-icon";
+import { GoogleButton } from "@/components/google-button";
 import { Screen } from "@/components/ui/screen";
 import { TextField } from "@/components/ui/text-field";
 import { Wordmark } from "@/components/ui/wordmark";
@@ -43,10 +42,6 @@ export default function SignInScreen() {
 
   const clearError = (field: SignInFields) =>
     setErrors((current) => (current[field] ? { ...current, [field]: undefined } : current));
-
-  const showSocialStub = (provider: string) => {
-    Alert.alert(`${provider} sign-in is coming soon`, "Use your email and password for now.");
-  };
 
   const handleSubmit = () => {
     if (login.isPending) return;
@@ -157,18 +152,24 @@ export default function SignInScreen() {
           </Animated.View>
 
           <Animated.View className="gap-3" entering={enter()}>
-            <Button
-              icon={<GoogleIcon />}
-              label="Continue with Google"
-              onPress={() => showSocialStub("Google")}
-              variant="outline"
-            />
-            <Button
-              icon={<Ionicons color={foreground as string} name="logo-apple" size={20} />}
-              label="Continue with Apple"
-              onPress={() => showSocialStub("Apple")}
-              variant="outline"
-            />
+            {/* Carries the chosen experience through, same as the email path. */}
+            <GoogleButton intendedRole={role} variant="outline" />
+            {/* iOS only. Apple's sign-in needs their native flow, so on
+                Android this was a button that could never do anything — and
+                "coming soon" on a shipping build is just a dead control. */}
+            {Platform.OS === "ios" ? (
+              <Button
+                accessibilityHint="Not available yet"
+                icon={<Ionicons color={foreground as string} name="logo-apple" size={20} />}
+                label="Continue with Apple"
+                onPress={() =>
+                  toast("Apple sign-in is not ready yet", {
+                    description: "Use Google or your email address.",
+                  })
+                }
+                variant="outline"
+              />
+            ) : null}
           </Animated.View>
 
           <View className="mt-auto flex-row items-center justify-center pt-8">

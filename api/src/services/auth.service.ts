@@ -62,7 +62,7 @@ export const loginUser = async (input: LoginInput): Promise<AuthResult> => {
   // locked admins out of the backoffice entirely.
   if (input.intendedRole && user.role === "admin") {
     throw new UnauthorizedException(
-      "Admin accounts sign in on the OnlineMall backoffice, not the app.",
+      "Admin accounts sign in on the Raket backoffice, not the app.",
     );
   }
 
@@ -126,7 +126,7 @@ export const signInWithGoogle = async (input: GoogleSignInInput): Promise<AuthRe
   // Same two guards as a password login, and for the same reasons.
   if (input.intendedRole && user.role === "admin") {
     throw new UnauthorizedException(
-      "Admin accounts sign in on the OnlineMall backoffice, not the app.",
+      "Admin accounts sign in on the Raket backoffice, not the app.",
     );
   }
 

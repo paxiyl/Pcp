@@ -2,14 +2,74 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
 import {
+  getAuthProvidersQueryFn,
   getCurrentUserQueryFn,
+  googleSignInMutationFn,
   loginMutationFn,
   logoutMutationFn,
   registerMutationFn,
 } from "@/lib/api";
 import { releasePushToken } from "@/features/settings/notifications";
 import { queryKeys } from "@/lib/query-client";
+import { isGoogleConfigured, signOutOfGoogle } from "./google-sign-in";
 import { clearAccessToken, setAccessToken } from "./token-storage";
+
+/**
+ * Seeds the cache from an auth response, so the first screen after sign-in
+ * renders without waiting on /auth/me or /addresses.
+ *
+ * Shared by all three ways in — password, registration and Google — because
+ * three copies of it drifted once already.
+ */
+const seedSession = async (
+  queryClient: ReturnType<typeof useQueryClient>,
+  data: { accessToken: string; hasAddress: boolean; defaultAddress: unknown; user: unknown },
+) => {
+  await setAccessToken(data.accessToken);
+  queryClient.setQueryData(queryKeys.accessToken, data.accessToken);
+  queryClient.setQueryData(queryKeys.currentUser, {
+    data: {
+      defaultAddress: data.defaultAddress,
+      hasAddress: data.hasAddress,
+      user: data.user,
+    },
+  });
+
+  if (data.defaultAddress) {
+    queryClient.setQueryData(queryKeys.addresses, {
+      data: { addresses: [data.defaultAddress] },
+    });
+  }
+};
+
+/**
+ * Whether to show the Google button at all.
+ *
+ * Both ends have to be ready: this build needs a client id, and the server
+ * needs the matching one in GOOGLE_CLIENT_IDS. Either missing and the button
+ * is hidden rather than shown and then refused — a button that apologises is
+ * worse than no button.
+ */
+export const useGoogleAvailable = (): boolean => {
+  const { data } = useQuery({
+    queryKey: queryKeys.authProviders,
+    queryFn: getAuthProvidersQueryFn,
+    enabled: isGoogleConfigured(),
+    select: (response) => response.data.google,
+    staleTime: Infinity,
+  });
+
+  return isGoogleConfigured() && data === true;
+};
+
+export const useGoogleSignIn = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: googleSignInMutationFn,
+    onSuccess: (response) => seedSession(queryClient, response.data),
+  });
+};
 
 /** The signed-in user, served from cache and refreshed by /auth/me. */
 export const useCurrentUser = () =>
@@ -81,6 +141,9 @@ export const useLogout = () => {
       // authenticate: otherwise the next person to sign in on this phone keeps
       // receiving the previous account's order updates.
       await releasePushToken();
+      // Without this, tapping Google after signing out silently returns the
+      // same account with no chooser, which reads as the app ignoring you.
+      await signOutOfGoogle();
       await clearAccessToken();
       queryClient.clear();
       router.replace("/welcome");

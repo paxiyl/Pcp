@@ -6,6 +6,7 @@
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo/ui": "~57.0.15",
     "@expo/vector-icons": "^15.0.2",
+    "@react-native-google-signin/google-signin": "^16.1.5",
     "@stripe/stripe-react-native": "0.64.0",
     "@tanstack/react-query": "^5.102.8",
     "axios": "^1.20.0",

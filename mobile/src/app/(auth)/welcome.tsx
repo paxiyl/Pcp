@@ -1,12 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Alert, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/button";
-import { GoogleIcon } from "@/components/ui/google-icon";
+import { GoogleButton } from "@/components/google-button";
 import { Wordmark } from "@/components/ui/wordmark";
 import { BRAND } from "@/lib/brand";
 import { useEnter } from "@/lib/motion";
@@ -28,13 +28,6 @@ export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const enter = useEnter();
   const [headerFrom, headerTo] = useCSSVariable(["--color-header-from", "--color-header-to"]);
-
-  const showSocialStub = (provider: string) => {
-    Alert.alert(
-      `${provider} sign-in is coming soon`,
-      "Continue with email for now — it takes about a minute.",
-    );
-  };
 
   return (
     <View className="flex-1 bg-foreground">
@@ -72,12 +65,7 @@ export default function WelcomeScreen() {
 
           <Animated.View className="mt-9 gap-3" entering={enter()}>
             <Button label="Continue with email" onPress={() => router.push("/sign-up")} />
-            <Button
-              icon={<GoogleIcon />}
-              label="Continue with Google"
-              onPress={() => showSocialStub("Google")}
-              variant="outline-inverse"
-            />
+            <GoogleButton variant="outline-inverse" />
           </Animated.View>
 
           <Animated.View className="mt-5 flex-row items-center justify-center" entering={enter()}>

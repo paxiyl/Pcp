@@ -24,7 +24,7 @@ import { createDish, deleteDish, updateDish } from "./restaurant.service";
 export const resolveOwnRestaurant = async (user: UserDocument): Promise<RestaurantDocument> => {
   if (!user.restaurantId) {
     throw new ForbiddenException(
-      "This account is not linked to a restaurant yet. Ask OnlineMall support to connect it.",
+      "This account is not linked to a kitchen yet. Ask Raket support to connect it.",
     );
   }
 
