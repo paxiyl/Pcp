@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 import { DemandSignalModel, DemandMode, DemandSignalDocument } from "../models/demand-signal.model";
 
@@ -83,7 +83,12 @@ export const listDemand = async (options?: {
 }): Promise<DemandSignalDocument[]> =>
   DemandSignalModel.find({
     ...(options?.mode ? { mode: options.mode } : {}),
-    ...(options?.includeResolved ? {} : { resolvedAt: { $exists: false } }),
+    // `sanitizeFilter` is on globally, so an operator written bare here is cast
+    // to a literal and matches nothing — the list would have come back empty
+    // every time. Marking it trusted is how server-authored operators opt in.
+    ...(options?.includeResolved
+      ? {}
+      : { resolvedAt: mongoose.trusted({ $exists: false }) }),
   })
     .sort({ askedCount: -1, requests: -1, lastSeenAt: -1 })
     .limit(Math.min(options?.limit ?? 50, 200))
