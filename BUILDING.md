@@ -95,22 +95,31 @@ npm install --no-save mongodb-memory-server   # once; downloads a MongoDB binary
 npm run check
 ```
 
-Eight suites against a throwaway database, about three minutes. They are not a
-unit-test suite — there is no runner and no coverage goal. They cover the two
-things reading the code cannot catch:
+Twelve suites, a little over 300 assertions, about three minutes. They are not
+a unit-test suite — there is no runner and no coverage goal. They cover the
+three things reading the code cannot catch:
 
 - **Arithmetic and flows that move money or grant access.** Registration as
   each role, admin approval granting it, the cash ledger, order status hooks.
+  `money.check.mjs` runs a typed rupee figure into paise and back out as a price
+  tag, round trip included.
 - **Bug classes that typecheck perfectly.** A field declared on a model
   interface but missing from the Mongoose schema (silently dropped on every
   write). A value-import cycle (crashes depending on which module loads
   first). A filter operator not marked `mongoose.trusted` (matches nothing,
   reports success). `api.check.mjs` boots the real server and calls every
-  endpoint, because the API's response shape and the clients' types live in
+  endpoint, and `route-coverage.check.mjs` compares the API's route table
+  against every path the two clients call, because those halves live in
   different codebases and agree only by hand.
+- **Decisions that only run on a phone.** Three of the suites read `mobile/`
+  rather than the API, because the code they cover was unreachable from here:
+  where the app sends each role after signing in, whether a customer can pay at
+  all, and money crossing the keyboard. All three were inline expressions inside
+  hooks and screens; they are plain functions in import-free modules now, and
+  these suites call them.
 
 Run it before a release, and after touching a model, a controller's response
-shape, or anything under `src/scripts/`.
+shape, a client path, or anything under `src/scripts/`.
 
 ### Building the APK
 
@@ -276,11 +285,27 @@ through the backoffice.
 - **Artwork is placeholder.** Every image under `mobile/assets/images`,
   `mobile/src/assets/images` and `admin/src/assets/login-bg-img.png` was drawn
   to unblock the build, not designed. Replace before release.
-- **Online payment does not work on device.** `react-native-razorpay` is not a
-  dependency; `src/features/orders/payment-sheet.ts` holds the implementation
-  in a comment behind a working seam. A Razorpay checkout returns a stated
-  failure and cash on delivery works. Installing it changes the native build,
-  so it is a deliberate choice, not an oversight.
+- **Online payment does not work on device yet.** `react-native-razorpay` is
+  not a dependency; `mobile/src/features/orders/payment-sheet.ts` holds the
+  implementation in a comment behind a working seam. Installing it changes the
+  native build, so it is a deliberate choice, not an oversight:
+
+      cd mobile
+      npx expo install react-native-razorpay
+      npx expo prebuild --platform android --clean   # native module
+
+  then fill in `openRazorpaySheet`, and set `RAZORPAY_INSTALLED = true` in
+  `src/features/payments/availability.ts`. Nothing else changes — every call
+  site already asks whether a sheet can be opened rather than assuming.
+
+  Until then the app does not offer what it cannot finish. UPI, card,
+  netbanking and wallet are greyed out with a reason on both the settings
+  screen and checkout, and cash on delivery is the default for a customer who
+  has never chosen. The server half is the same question asked of
+  configuration: with no `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` (or
+  `PAYMENT_PROVIDER=stripe` and the Stripe pair), `GET /payment-methods`
+  reports `online.available: false` and the app believes it. Set both halves
+  and online payment appears with no further change.
 - `expo-haptics` and `expo-notifications` are likewise absent and unreferenced.
 - `mobile/package.json` has a `reset-project` script whose
   `scripts/reset-project.js` is not in the tree.

@@ -716,10 +716,8 @@ holding something worth stealing, and the gateway already does that properly.
 
 ### Carried forward
 
-- `basket.tsx` and `search.tsx` still set state synchronously inside an effect.
-  Both are "sync a draft from server state", both cost an extra render and
-  nothing else, and both were left alone rather than churned immediately before
-  an APK build.
+- ~~`basket.tsx` and `search.tsx` still set state synchronously inside an
+  effect.~~ Fixed in Phase 6's tail; both lint clean.
 - Google sign-in is **built on all three** now, and **switched off** until an
   OAuth client exists. The app's button was an `Alert.alert` stub while the API
   endpoint and the backoffice button were already real; it uses
@@ -749,7 +747,10 @@ Everything left needs your machine, a device, or a decision:
 
 1. **Install `react-native-razorpay`.** Haptics and notifications are in — push
    runs on FCM directly, which is why no EAS project id is needed for it. Until
-   Razorpay is installed, online payment does not work on a device; COD does.
+   it is installed the app does not offer what it cannot finish: the four online
+   methods are greyed out with a reason and cash is the default. One command, one
+   function body, and `RAZORPAY_INSTALLED = true` in
+   `mobile/src/features/payments/availability.ts` — see Phase 7.
 2. **A release keystore.** Builds so far are signed with the Android debug key,
    which installs fine for testing and is rejected by Play. Create it once,
    back it up in two places, and never lose it: a lost upload key means never
@@ -770,8 +771,10 @@ Everything left needs your machine, a device, or a decision:
    Then re-download `google-services.json` and rebuild the app.
 4. **Point the app at the real API.** `EXPO_PUBLIC_API_URL` is unset, so builds
    fall back to `http://localhost:8000/api/v1` — correct only while the API runs
-   on the same phone. Set it to the VPS, then remove `usesCleartextTraffic` from
-   `app.json`, which exists solely for that localhost.
+   on the same phone. Set it to the VPS and rebuild; nothing else to change,
+   because `app.config.ts` derives `usesCleartextTraffic` from the URL's scheme
+   rather than leaving a permission in `app.json` for somebody to remember to
+   take out.
 5. **Seed and pilot**: `npm run seed:stores`, create one real shop and one owner,
    then walk an order end to end. That will surface what review cannot.
 6. **The licence.** `TECHWITHEMMA-LICENSE.md` requires a paid licence for
@@ -779,6 +782,119 @@ Everything left needs your machine, a device, or a decision:
 7. **Pharmacy licensing** before any prescription medicine goes live, plus the
    Legal Metrology declarations on every listing.
 8. **Promo codes**, if you want them.
+
+## Phase 7 — Finding the bugs mechanically ✅ complete
+
+A user bug report that the same symptom kept surviving its own fix. Signing up
+as a rider, a shop or a kitchen landed on the customer shopping page, three
+times in a row, for three different reasons. The work here is as much about why
+that was possible as about the fixes.
+
+### The same symptom, three causes
+
+1. **A redirect race.** The sign-up screen and the route guard both redirected
+   after a successful registration, to two different places, and whichever
+   landed last won. Fixed by giving the guard one answer for "you have just
+   authenticated" (`postAuthRoute`), separate from "you have just launched".
+2. **A cache three hooks wrote by hand.** `postAuthRoute` reads the application
+   out of the cached session. `seedSession` existed to write that cache, with a
+   comment about the copies having drifted once already — and was wired into
+   exactly one of the three ways in. The password and registration hooks kept
+   their own inline copies, neither of which stored the application, so the
+   guard could not see a pending one however hard it looked.
+3. **The APK under test predated the destination.** The build the bug was
+   reported against had no `/application-status` and no `/kitchen-counter` in
+   its JS bundle at all — confirmed by grepping the bundle out of the APK. Two
+   of the three fixes were already written; one had never been installed.
+
+### What changed, so that it is the last time
+
+Each of the three lived in an inline expression inside a hook or a screen, so
+the only way to run any of them was to build an APK, install it, and sign up on
+a phone. They are plain functions in import-free modules now, and the checks
+call them directly:
+
+- `mobile/src/features/auth/routes.ts` — `landingRouteFor`, `postAuthRouteFor`
+  and `redirectFor`, which is the guard's entire branch set as a function of
+  values. `use-protected-route` is the wiring around it and holds no route of
+  its own.
+- `checks/mobile-routing.check.mjs` — 44 assertions: every role against every
+  application state, every state where the guard must do nothing, and the two
+  source invariants that allowed cause 2 (one writer for the session cache, no
+  route literals in the guard). Against the previous commit both invariants
+  fail: three writers, one hook through `seedSession`.
+
+### Three gaps the mechanical checks then found
+
+**`route-coverage.check.mjs`** reads the API's route table off the real Express
+routers, reads every `API.*` call out of each client's api.ts, and compares
+them. 118 routes, all reachable. The interesting half is the routes nothing
+calls — which is how this surfaced:
+
+    POST   /store-owner/products      DELETE /store-owner/products/:id
+    PUT    /store-owner/products/:id  POST   /restaurant-owner/dishes
+                                      DELETE /restaurant-owner/dishes/:id
+
+Served since the owner catalogue went in, called by no screen ever. A Hindaun
+shopkeeper could count stock and switch an item off, and could not put anything
+on the shelf or change what it cost — and a shop that has just joined has an
+empty shelf, so the first thing every new partner needed was the one thing the
+app refused to do. Both empty states told them to ring support, which in a
+marketplace with one operator means that operator's phone rings for every
+product in town. The validator had it right all along: "Price IS included: an
+owner adding their own stock has to say what it costs." Only the screens were
+missing. `/product-new` and `/dish-new` now add and edit, with a preset picker
+so a listing has a picture without a photograph; the shelf and menu tabs stay
+steppers and switches, which is what lets them stay safe to use mid-service.
+
+**Online payment was offered everywhere and worked nowhere.** The server
+returned `available: true` for every non-cash method, with a comment explaining
+that the gateway handles them — true only once it has keys, which no deployment
+has before somebody adds them. The app's Razorpay sheet is a stub. So a
+customer chose UPI in settings, filled in an address, a phone number and a
+delivery note, tapped Pay, and was told online payment is not available in this
+build. Both halves are now asked properly: the server reports whether its
+gateway is configured and which one it is, the app narrows that by whether this
+build can open that provider's sheet, and either half missing greys the row out
+with the reason. When nothing is payable at all, checkout says so rather than
+offering a button that fails.
+
+One behaviour deliberately reversed: an explicit choice now comes back exactly
+as made, even when it cannot be used today. It used to be overwritten with
+something usable, which made sense when the app opened checkout on it
+unconditionally. The app works out where to open now, so overwriting would only
+mean forgetting what somebody asked for the moment a gateway went down.
+
+**Money crossing the keyboard** is one function with a check behind it.
+`parseRupees` is the only place a typed figure becomes a stored amount, and
+`money.check.mjs` runs it against `formatPrice` in both directions: 12050 not
+12050.000000000002, "₹12,34,567" not "₹1,234,567", and letters, three decimal
+places, scientific notation and a bare dot refused rather than guessed. Reading
+"120" as 120 paise would sell atta for ₹1.20 until a customer noticed.
+
+### Also
+
+- Registration over the wire was only ever checked as a kitchen, while the role
+  actually reported broken was the rider. All three partner roles now register
+  through the real middleware stack and are checked for a pending application
+  in both the registration response and `/auth/me`.
+- Sign-up stops claiming a success it did not get. Asked to join as a partner
+  and handed back an account with no application — what a server older than the
+  `joinAs` field returns — it says so and offers the form, instead of "Welcome
+  to Raket" and the shopping page.
+- `app.config.ts` derives `usesCleartextTraffic` from `EXPO_PUBLIC_API_URL`, so
+  the localhost permission cannot ship in a build that points at a real host.
+- `npm run bundle` builds `dist/` without the typecheck, because `npm run build`
+  is killed by Android's OOM reaper when the API is being rebuilt on the phone
+  it runs on.
+
+### Carried forward
+
+- `DELETE /categories/:id` and `DELETE /restaurants/:id` are served and exposed
+  nowhere. Both are destructive with live orders attached. Left unexposed on
+  purpose; if they are ever wanted, they need a soft delete rather than a
+  button.
+- The partial-refund settlement rule (Phase 6) is still a business decision.
 
 ## checklist.design audit
 
@@ -805,7 +921,7 @@ Applied manually from the published checklists — no external skill, per instru
 | --- | --- | --- |
 | Mobile › Cart | No promo code. | 4c |
 | Mobile › Checkout | No promo code. | 4c |
-| Mobile › Billing | Selector shipped. Razorpay SDK still not installed. | — |
+| Mobile › Billing | Selector shipped; unusable methods greyed with a reason. Razorpay SDK still not installed. | — |
 | Mobile › Search | Shipped: recent, popular, filters, counts, all states. | ✅ |
 | Mobile › Onboarding | Location-only; no value framing. | 4c |
 | Mobile › Push opt-in | No notification permission flow at all. | 4c |
