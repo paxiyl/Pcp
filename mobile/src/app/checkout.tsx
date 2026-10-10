@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useStripe } from "@stripe/stripe-react-native";
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -15,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCSSVariable } from "uniwind";
 
+import { CatalogueImage } from "@/components/catalogue-image";
 import { useBasket } from "@/features/basket/use-basket";
 import { useCurrentUser } from "@/features/auth/use-auth";
 import { useDefaultAddress } from "@/features/location/use-addresses";
@@ -361,15 +361,16 @@ export default function CheckoutScreen() {
               className={`flex-row items-center gap-3 p-3 ${index > 0 ? "border-t border-border" : ""}`}
               key={item._id}
             >
-              {item.imageUrl ? (
-                <Image
-                  accessibilityIgnoresInvertColors
-                  alt=""
-                  contentFit="cover"
-                  source={{ uri: item.imageUrl }}
-                  style={{ borderRadius: 12, height: 56, width: 56 }}
-                  transition={200}
-                />
+              {item.imageUrl || item.imagePreset ? (
+                <View className="overflow-hidden rounded-input" style={{ height: 56, width: 56 }}>
+                  <CatalogueImage
+                    contentFit="cover"
+                    imagePreset={item.imagePreset}
+                    imageUrl={item.imageUrl}
+                    name={item.name}
+                    size={56}
+                  />
+                </View>
               ) : (
                 <View
                   className="items-center justify-center rounded-input bg-muted"

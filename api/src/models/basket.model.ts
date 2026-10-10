@@ -21,6 +21,8 @@ export interface BasketItem {
   restaurantId?: Types.ObjectId;
   name: string;
   imageUrl: string;
+  /** Copied with the image: a line with neither would draw blank. */
+  imagePreset?: string;
   /** Minor units (paise), priced by the server. Never taken from the client. */
   unitPrice: number;
   /** Printed MRP at the time of adding, for the struck-through price. Store lines only. */
@@ -56,6 +58,7 @@ const basketItemSchema = new Schema<BasketItem>(
     restaurantId: { type: Schema.Types.ObjectId, ref: "Restaurant" },
     name: { type: String, required: true },
     imageUrl: { type: String, default: "" },
+    imagePreset: { type: String },
     unitPrice: { type: Number, required: true, min: 0 },
     mrp: { type: Number, min: 0 },
     unit: { type: String, trim: true, maxlength: 40 },

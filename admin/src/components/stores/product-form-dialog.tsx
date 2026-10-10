@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { ImagePicker } from "@/components/image-picker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -46,6 +47,7 @@ type FormState = {
   categoryId: string;
   description: string;
   imageUrl: string;
+  imagePreset: string;
   price: string;
   mrp: string;
   stock: string;
@@ -61,6 +63,7 @@ const EMPTY: FormState = {
   categoryId: "",
   description: "",
   imageUrl: "",
+  imagePreset: "",
   isAvailable: true,
   isPopular: false,
   maxPerOrder: "10",
@@ -98,6 +101,7 @@ export function ProductFormDialog({ storeId, product, onOpenChange, open }: Prop
             categoryId: categoryIdOf(product),
             description: product.description,
             imageUrl: product.imageUrl,
+            imagePreset: product.imagePreset ?? "",
             isAvailable: product.isAvailable,
             isPopular: product.isPopular,
             maxPerOrder: String(product.maxPerOrder),
@@ -135,6 +139,7 @@ export function ProductFormDialog({ storeId, product, onOpenChange, open }: Prop
       categoryId: form.categoryId,
       description: form.description.trim(),
       imageUrl: form.imageUrl.trim(),
+      imagePreset: form.imagePreset,
       isAvailable: form.isAvailable,
       isPopular: form.isPopular,
       maxPerOrder: Number(form.maxPerOrder || 10),
@@ -281,15 +286,22 @@ export function ProductFormDialog({ storeId, product, onOpenChange, open }: Prop
             </Field>
           </div>
 
-          <Field>
-            <FieldLabel htmlFor="p-image">Image URL</FieldLabel>
-            <Input
-              id="p-image"
-              onChange={(event) => set("imageUrl", event.target.value)}
-              placeholder="https://…"
-              value={form.imageUrl}
-            />
-          </Field>
+          {/* Was a bare "Image URL" text box, which a shopkeeper on a phone has
+              no way to fill. Upload or a tile, same as the dish form. */}
+          <ImagePicker
+            catalogue="grocery"
+            folder="products"
+            imagePreset={form.imagePreset}
+            imageUrl={form.imageUrl}
+            label="Product image"
+            onChange={(next) =>
+              setForm((current) => ({
+                ...current,
+                imagePreset: next.imagePreset,
+                imageUrl: next.imageUrl,
+              }))
+            }
+          />
 
           <Field>
             <FieldLabel htmlFor="p-desc">Description</FieldLabel>

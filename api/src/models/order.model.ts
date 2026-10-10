@@ -41,6 +41,8 @@ export interface OrderItem {
   productId?: Types.ObjectId;
   name: string;
   imageUrl: string;
+  /** Copied with the image: a line with neither would draw blank. */
+  imagePreset?: string;
   unitPrice: number;
   quantity: number;
   optionIds: Types.ObjectId[];
@@ -183,6 +185,7 @@ const orderItemSchema = new Schema<OrderItem & Document>(
     productId: { type: Schema.Types.ObjectId, ref: "Product" },
     name: { type: String, required: true, trim: true, maxlength: 120 },
     imageUrl: { type: String, default: "" },
+    imagePreset: { type: String },
     unitPrice: { type: Number, required: true, min: 0 },
     quantity: { type: Number, required: true, min: 1, max: 50 },
     optionIds: { type: [Schema.Types.ObjectId], default: [] },

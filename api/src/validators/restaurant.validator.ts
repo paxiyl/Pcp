@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRESET_KEYS } from "../config/image-presets";
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
 
@@ -95,6 +96,11 @@ export const dishSchema = z.object({
   description: z.string().trim().max(300).default(""),
   imageUrl: z.string().url("Enter a valid image URL").or(z.literal("")).default(""),
   imagePublicId: z.string().trim().optional(),
+  /**
+   * A preset tile instead of a photograph. Validated against the catalogue so a
+   * client cannot store a key nothing can draw; empty string clears it.
+   */
+  imagePreset: z.enum(PRESET_KEYS as [string, ...string[]]).or(z.literal("")).optional(),
   price: z.number().int().min(0, "Price is in cents"),
   calories: z.number().int().min(0).optional(),
   allergens: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
@@ -117,6 +123,7 @@ export const dishUpdateSchema = z.object({
   description: z.string().trim().max(300).optional(),
   imageUrl: z.string().url().or(z.literal("")).optional(),
   imagePublicId: z.string().trim().optional(),
+  imagePreset: z.enum(PRESET_KEYS as [string, ...string[]]).or(z.literal("")).optional(),
   price: z.number().int().min(0).optional(),
   calories: z.number().int().min(0).optional(),
   allergens: z.array(z.string().trim().min(1).max(40)).max(20).optional(),

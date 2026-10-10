@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRESET_KEYS } from "../config/image-presets";
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use 24-hour HH:mm");
@@ -79,6 +80,11 @@ export const productSchema = z.object({
   description: z.string().trim().max(600).default(""),
   imageUrl: z.string().url("Enter a valid image URL").or(z.literal("")).default(""),
   imagePublicId: z.string().trim().optional(),
+  /**
+   * A preset tile instead of a photograph. Validated against the catalogue so a
+   * client cannot store a key nothing can draw; empty string clears it.
+   */
+  imagePreset: z.enum(PRESET_KEYS as [string, ...string[]]).or(z.literal("")).optional(),
   unit: z.string().trim().min(1, "Enter a pack size, such as 1 kg").max(40),
   brand: z.string().trim().max(60).default(""),
   categoryId: objectId,
@@ -105,6 +111,7 @@ export const productUpdateSchema = z.object({
   description: z.string().trim().max(600).optional(),
   imageUrl: z.string().url().or(z.literal("")).optional(),
   imagePublicId: z.string().trim().optional(),
+  imagePreset: z.enum(PRESET_KEYS as [string, ...string[]]).or(z.literal("")).optional(),
   unit: z.string().trim().min(1).max(40).optional(),
   brand: z.string().trim().max(60).optional(),
   categoryId: objectId.optional(),

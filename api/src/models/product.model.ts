@@ -1,4 +1,5 @@
 import { Document, model, Schema, Types } from "mongoose";
+import { PRESET_KEYS } from "../config/image-presets";
 
 /**
  * A packaged SKU on a store's shelf.
@@ -36,6 +37,13 @@ export interface ProductDocument extends Document {
   slug: string;
   description: string;
   imageUrl: string;
+  /**
+   * A preset tile key, used when there is no photograph. Kept alongside
+   * `imageUrl` rather than written into it: a URL is a picture of this item, a
+   * preset is an admission that we do not have one, and the clients draw them
+   * differently.
+   */
+  imagePreset?: string;
   imagePublicId?: string;
   /**
    * Pack size exactly as printed: "1 kg", "500 ml", "Pack of 6". For goods sold
@@ -91,6 +99,7 @@ const productSchema = new Schema<ProductDocument>(
     slug: { type: String, required: true, lowercase: true, trim: true, index: true },
     description: { type: String, default: "", trim: true, maxlength: 600 },
     imageUrl: { type: String, default: "" },
+    imagePreset: { type: String, enum: PRESET_KEYS },
     imagePublicId: { type: String },
     unit: { type: String, required: true, trim: true, maxlength: 40 },
     brand: { type: String, default: "", trim: true, maxlength: 60, index: true },

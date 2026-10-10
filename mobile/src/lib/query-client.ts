@@ -16,6 +16,7 @@ export const queryKeys = {
   orders: ["orders"] as const,
   search: (term: string, mode: string) => ["search", mode, term] as const,
   paymentPreferences: ["paymentPreferences"] as const,
+  imagePresets: ["imagePresets"] as const,
   restaurant: (slug: string) => ["restaurant", slug] as const,
   restaurants: (filters: { category?: string; search?: string } = {}) =>
     ["restaurants", filters] as const,

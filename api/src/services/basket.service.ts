@@ -299,6 +299,7 @@ export const addItem = async (
   const candidate = {
     dishId: dish._id,
     imageUrl: dish.imageUrl,
+    imagePreset: dish.imagePreset,
     name: dish.name,
     note,
     optionIds: priced.optionIds,
@@ -393,6 +394,7 @@ export const addProduct = async (
 
   const candidate = {
     imageUrl: product.imageUrl,
+    imagePreset: product.imagePreset,
     mrp: product.mrp,
     name: product.name,
     optionIds: [],

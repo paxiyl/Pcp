@@ -1,5 +1,4 @@
-import { ImageIcon, UploadIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -9,6 +8,7 @@ import {
   validateGroups,
   type EditableGroup,
 } from "@/components/restaurants/dish-option-groups";
+import { ImagePicker } from "@/components/image-picker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,7 +35,6 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useCategories } from "@/features/categories/use-categories";
 import { useCreateDish, useUpdateDish } from "@/features/restaurants/use-dishes";
-import { useUploadImage } from "@/features/uploads/use-upload-image";
 import type { AdminDish } from "@/lib/api";
 import { ApiError } from "@/lib/axios-client";
 
@@ -54,6 +53,7 @@ type FormState = {
   name: string;
   description: string;
   imageUrl: string;
+  imagePreset: string;
   price: string;
   section: string;
   /** null until chosen. There is no safe default, so the form insists. */
@@ -68,6 +68,7 @@ const toMajor = (cents: number) => (cents / 100).toFixed(2);
 const emptyForm: FormState = {
   description: "",
   imageUrl: "",
+  imagePreset: "",
   isAvailable: true,
   isPopular: false,
   isVeg: null,
@@ -86,9 +87,7 @@ export function DishFormDialog({
 }: Props) {
   const create = useCreateDish();
   const update = useUpdateDish();
-  const uploadImage = useUploadImage();
   const { data: categories } = useCategories();
-  const fileInput = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [groups, setGroups] = useState<EditableGroup[]>([]);
@@ -116,6 +115,7 @@ export function DishFormDialog({
         ? {
             description: dish.description,
             imageUrl: dish.imageUrl,
+            imagePreset: dish.imagePreset ?? "",
             isAvailable: dish.isAvailable,
             isPopular: dish.isPopular,
             isVeg: dish.isVeg,
@@ -132,21 +132,6 @@ export function DishFormDialog({
     setForm((current) => ({ ...current, [key]: value }));
 
   const pending = create.isPending || update.isPending;
-
-  const pickImage = (file?: File) => {
-    if (!file) return;
-
-    uploadImage.mutate(
-      { file, folder: "dishes" },
-      {
-        onError: (error) =>
-          toast.error("Upload failed", {
-            description: error instanceof ApiError ? error.message : "Please try again.",
-          }),
-        onSuccess: (response) => set("imageUrl", response.data.url),
-      },
-    );
-  };
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -168,6 +153,7 @@ export function DishFormDialog({
     const input = {
       description: form.description.trim(),
       imageUrl: form.imageUrl.trim(),
+      imagePreset: form.imagePreset,
       isAvailable: form.isAvailable,
       isPopular: form.isPopular,
       isVeg: form.isVeg === true,
@@ -212,68 +198,20 @@ export function DishFormDialog({
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-4 sm:pt-4">
             <FieldGroup>
-              <Field>
-                <FieldLabel>Dish image</FieldLabel>
-
-                <input
-                  accept="image/png,image/jpeg,image/webp,image/avif"
-                  className="hidden"
-                  onChange={(event) => pickImage(event.target.files?.[0])}
-                  ref={fileInput}
-                  type="file"
-                />
-
-                <div className="flex items-center gap-4">
-                  {form.imageUrl ? (
-                    <img
-                      alt=""
-                      className="size-28 rounded-lg border object-cover"
-                      src={form.imageUrl}
-                    />
-                  ) : (
-                    <button
-                      className="text-muted-foreground hover:border-primary hover:text-primary flex h-28 w-56 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed transition-colors"
-                      disabled={uploadImage.isPending}
-                      onClick={() => fileInput.current?.click()}
-                      type="button"
-                    >
-                      {uploadImage.isPending ? (
-                        <Spinner className="size-5" />
-                      ) : (
-                        <ImageIcon className="size-5" />
-                      )}
-                      <span className="text-foreground text-sm font-medium">Upload image</span>
-                      <span className="text-xs">PNG or JPG · Max 5 MB</span>
-                    </button>
-                  )}
-
-                  {form.imageUrl ? (
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        disabled={uploadImage.isPending}
-                        onClick={() => fileInput.current?.click()}
-                        type="button"
-                        variant="outline"
-                      >
-                        {uploadImage.isPending ? (
-                          <Spinner data-icon="inline-start" />
-                        ) : (
-                          <UploadIcon data-icon="inline-start" />
-                        )}
-                        Replace image
-                      </Button>
-                      <Button
-                        onClick={() => set("imageUrl", "")}
-                        size="sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
-              </Field>
+              <ImagePicker
+                catalogue="food"
+                folder="dishes"
+                imagePreset={form.imagePreset}
+                imageUrl={form.imageUrl}
+                label="Dish image"
+                onChange={(next) =>
+                  setForm((current) => ({
+                    ...current,
+                    imagePreset: next.imagePreset,
+                    imageUrl: next.imageUrl,
+                  }))
+                }
+              />
 
               <Field data-invalid={errors.name ? true : undefined}>
                 <FieldLabel htmlFor="dish-name">Dish name</FieldLabel>

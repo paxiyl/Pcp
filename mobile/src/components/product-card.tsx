@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { memo } from "react";
 import { Text, View } from "react-native";
 import { useCSSVariable } from "uniwind";
 
 import type { Product } from "@/lib/api";
 import { formatDiscount, formatPrice } from "@/lib/format";
+
+import { CatalogueImage } from "./catalogue-image";
 
 import { PressableScale } from "./ui/pressable-scale";
 import { QuantityStepper } from "./ui/quantity-stepper";
@@ -72,13 +73,12 @@ function ProductCardComponent({
         onPress={onPress}
         weight="card"
       >
-        <Image
-          accessibilityIgnoresInvertColors
-          alt=""
-          contentFit="contain"
-          source={{ uri: product.imageUrl }}
-          style={{ height: "100%", opacity: soldOut ? 0.4 : 1, width: "100%" }}
-          transition={180}
+        <CatalogueImage
+          dimmed={soldOut}
+          imagePreset={product.imagePreset}
+          imageUrl={product.imageUrl}
+          name={product.name}
+          size={width ?? 150}
         />
 
         {/* The discount flag sits on the image, not under it: on a shelf of

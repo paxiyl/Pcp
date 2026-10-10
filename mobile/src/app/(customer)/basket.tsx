@@ -20,6 +20,7 @@ import {
   useUpdateBasket,
 } from "@/features/basket/use-basket";
 import { formatEta, formatPrice } from "@/lib/format";
+import { CatalogueImage } from "@/components/catalogue-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "@/lib/sonner";
 
@@ -197,15 +198,16 @@ export default function BasketScreen() {
               }`}
               key={item._id}
             >
-              {item.imageUrl ? (
-                <Image
-                  accessibilityIgnoresInvertColors
-                  alt=""
-                  contentFit="cover"
-                  source={{ uri: item.imageUrl }}
-                  style={{ borderRadius: 12, height: 56, width: 56 }}
-                  transition={200}
-                />
+              {item.imageUrl || item.imagePreset ? (
+                <View className="overflow-hidden rounded-input" style={{ height: 56, width: 56 }}>
+                  <CatalogueImage
+                    contentFit="cover"
+                    imagePreset={item.imagePreset}
+                    imageUrl={item.imageUrl}
+                    name={item.name}
+                    size={56}
+                  />
+                </View>
               ) : (
                 <View
                   className="items-center justify-center rounded-input bg-muted"

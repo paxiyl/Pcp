@@ -10,7 +10,11 @@ const FOLDERS: Record<string, string> = {
   banners: "chowly/banners",
   categories: "chowly/categories",
   dishes: "chowly/dishes",
+  // Shop product photos. Missing until now, so a product upload was refused
+  // as an unknown folder.
+  products: "chowly/products",
   restaurants: "chowly/restaurants",
+  stores: "chowly/stores",
 };
 
 export const uploadImageController = asyncHandler(async (request: Request, response: Response) => {

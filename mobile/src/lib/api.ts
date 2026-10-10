@@ -95,6 +95,8 @@ export type Dish = {
   name: string;
   description: string;
   imageUrl: string;
+  /** Set when the owner picked a stand-in tile rather than uploading a photo. */
+  imagePreset?: string;
   /** Minor units (cents). */
   price: number;
   calories?: number;
@@ -195,6 +197,8 @@ export type Product = {
   slug: string;
   description: string;
   imageUrl: string;
+  /** Set when the owner picked a stand-in tile rather than uploading a photo. */
+  imagePreset?: string;
   /** Pack size as printed: "1 kg", "500 ml". */
   unit: string;
   brand: string;
@@ -250,6 +254,8 @@ export type BasketItem = {
   productId?: string;
   name: string;
   imageUrl: string;
+  /** Set when the owner picked a stand-in tile rather than uploading a photo. */
+  imagePreset?: string;
   /** Minor units (paise), priced by the server. */
   unitPrice: number;
   /** Printed MRP, for the struck-through price. Store lines only. */
@@ -331,6 +337,8 @@ export type OrderItem = {
   dishId: string;
   name: string;
   imageUrl: string;
+  /** Set when the owner picked a stand-in tile rather than uploading a photo. */
+  imagePreset?: string;
   unitPrice: number;
   quantity: number;
   optionIds: string[];
@@ -820,3 +828,22 @@ export const getPaymentPreferencesQueryFn = async (): Promise<PaymentPreferences
 export const setPaymentPreferenceMutationFn = async (input: {
   method: PaymentMethod;
 }): Promise<PaymentPreferencesResponse> => API.patch("/payment-methods", input);
+
+/* Image presets — stand-in tiles for a catalogue item with no photograph */
+
+export type ImagePreset = {
+  key: string;
+  label: string;
+  /** An emoji, so it draws identically here and in the backoffice. */
+  glyph: string;
+  colors: [string, string];
+  catalogue: "grocery" | "food";
+};
+
+type ImagePresetsResponse = {
+  message: string;
+  data: { presets: ImagePreset[]; uploadsEnabled: boolean };
+};
+
+export const getImagePresetsQueryFn = async (): Promise<ImagePresetsResponse> =>
+  API.get("/image-presets");

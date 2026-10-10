@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCSSVariable } from "uniwind";
 
+import { CatalogueImage } from "@/components/catalogue-image";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton, SkeletonLine } from "@/components/ui/skeleton";
@@ -126,13 +127,12 @@ export default function ProductScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="mx-gutter aspect-square overflow-hidden rounded-tile bg-muted">
-          <Image
-            accessibilityIgnoresInvertColors
-            alt=""
-            contentFit="contain"
-            source={{ uri: product.imageUrl }}
-            style={{ height: "100%", opacity: soldOut ? 0.4 : 1, width: "100%" }}
-            transition={200}
+          <CatalogueImage
+            dimmed={soldOut}
+            imagePreset={product.imagePreset}
+            imageUrl={product.imageUrl}
+            name={product.name}
+            size={320}
           />
           {discount && !soldOut ? (
             <View className="absolute left-0 top-4 rounded-r-chip bg-offer px-3 py-1.5">

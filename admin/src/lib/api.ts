@@ -359,6 +359,8 @@ export type AdminDish = {
   name: string;
   description: string;
   imageUrl: string;
+  /** The stand-in tile key, when the owner picked one. */
+  imagePreset?: string;
   price: number;
   section: string;
   /** The green-dot mark. The API refuses to create a dish without it. */
@@ -718,6 +720,8 @@ export type AdminProduct = {
   slug: string;
   description: string;
   imageUrl: string;
+  /** The stand-in tile key, when the owner picked one. */
+  imagePreset?: string;
   unit: string;
   brand: string;
   categoryId: string | { _id: string; name: string; slug: string };
@@ -1043,3 +1047,30 @@ export const resolveDemandMutationFn = async (input: {
   resolved: boolean;
 }): Promise<{ message: string; data: { signal: DemandSignal } }> =>
   API.patch(`/admin/demand/${input.id}`, { resolved: input.resolved });
+
+/* Image presets — stand-in tiles for a catalogue item with no photograph */
+
+export const PRESET_CATALOGUES = ["grocery", "food"] as const;
+
+export type PresetCatalogue = (typeof PRESET_CATALOGUES)[number];
+
+export type ImagePreset = {
+  key: string;
+  label: string;
+  /** An emoji, so the tile draws the same here as it does in the app. */
+  glyph: string;
+  colors: [string, string];
+  catalogue: PresetCatalogue;
+};
+
+type ImagePresetsResponse = {
+  message: string;
+  data: {
+    presets: ImagePreset[];
+    /** False when this deployment has no image hosting configured. */
+    uploadsEnabled: boolean;
+  };
+};
+
+export const getImagePresetsQueryFn = async (): Promise<ImagePresetsResponse> =>
+  API.get("/image-presets");

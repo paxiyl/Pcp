@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -21,6 +20,7 @@ import {
   useBasket,
   useSetBasketItemQuantity,
 } from "@/features/basket/use-basket";
+import { CatalogueImage } from "@/components/catalogue-image";
 import { useDish } from "@/features/catalogue/use-restaurants";
 import type { DishOptionGroup } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
@@ -200,20 +200,13 @@ export default function DishDetailScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={{ height: HERO_HEIGHT }}>
-            {dish.imageUrl ? (
-              <Image
-                accessibilityIgnoresInvertColors
-                alt=""
-                contentFit="cover"
-                source={{ uri: dish.imageUrl }}
-                style={{ height: HERO_HEIGHT, width: "100%" }}
-                transition={250}
-              />
-            ) : (
-              <View className="h-full w-full items-center justify-center bg-muted">
-                <Ionicons color={subtle as string} name="restaurant-outline" size={40} />
-              </View>
-            )}
+            <CatalogueImage
+              contentFit="cover"
+              imagePreset={dish.imagePreset}
+              imageUrl={dish.imageUrl}
+              name={dish.name}
+              size={HERO_HEIGHT}
+            />
 
             <View
               className="absolute left-0 right-0 flex-row justify-between px-5"

@@ -137,6 +137,7 @@ type OrderVendor = {
   id: Types.ObjectId;
   name: string;
   imageUrl: string;
+  imagePreset?: string;
   address: string;
   location?: { coordinates?: number[] };
   prepTimeMinMinutes: number;
@@ -258,6 +259,7 @@ export const createOrder = async (
       dishId: item.dishId,
       productId: item.productId,
       imageUrl: item.imageUrl,
+      imagePreset: item.imagePreset,
       name: item.name,
       note: item.note,
       optionIds: item.optionIds,

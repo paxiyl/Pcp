@@ -5,6 +5,7 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCSSVariable } from "uniwind";
 
+import { CatalogueImage } from "@/components/catalogue-image";
 import { BasketBar } from "@/components/basket-bar";
 import { VegMark } from "@/components/veg-toggle";
 import { RestaurantDetailSkeleton } from "@/components/restaurant-detail-skeleton";
@@ -239,20 +240,15 @@ export default function RestaurantDetailScreen() {
                     key={dish._id}
                     onPress={() => openDish(dish)}
                   >
-                    {dish.imageUrl ? (
-                      <Image
-                        accessibilityIgnoresInvertColors
-                        alt=""
+                    <View style={{ height: 104 }}>
+                      <CatalogueImage
                         contentFit="cover"
-                        source={{ uri: dish.imageUrl }}
-                        style={{ height: 104, width: "100%" }}
-                        transition={200}
+                        imagePreset={dish.imagePreset}
+                        imageUrl={dish.imageUrl}
+                        name={dish.name}
+                        size={104}
                       />
-                    ) : (
-                      <View className="items-center justify-center bg-muted" style={{ height: 104 }}>
-                        <Ionicons color={subtle as string} name="restaurant-outline" size={22} />
-                      </View>
-                    )}
+                    </View>
                     <View className="gap-1 p-3">
                       <View className="flex-row items-center gap-1.5">
                         {/* The mark sits before the name, which is the order it
@@ -316,23 +312,15 @@ export default function RestaurantDetailScreen() {
               key={dish._id}
               onPress={() => openDish(dish)}
             >
-              {dish.imageUrl ? (
-                <Image
-                  accessibilityIgnoresInvertColors
-                  alt=""
+              <View className="overflow-hidden rounded-input" style={{ height: 72, width: 72 }}>
+                <CatalogueImage
                   contentFit="cover"
-                  source={{ uri: dish.imageUrl }}
-                  style={{ borderRadius: 12, height: 72, width: 72 }}
-                  transition={200}
+                  imagePreset={dish.imagePreset}
+                  imageUrl={dish.imageUrl}
+                  name={dish.name}
+                  size={72}
                 />
-              ) : (
-                <View
-                  className="items-center justify-center rounded-input bg-muted"
-                  style={{ height: 72, width: 72 }}
-                >
-                  <Ionicons color={subtle as string} name="restaurant-outline" size={20} />
-                </View>
-              )}
+              </View>
 
               <View className="flex-1 gap-1">
                 <Text className="font-heading text-body text-card-foreground">{dish.name}</Text>

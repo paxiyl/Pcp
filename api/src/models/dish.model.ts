@@ -1,4 +1,5 @@
 import { Document, model, Schema, Types } from "mongoose";
+import { PRESET_KEYS } from "../config/image-presets";
 
 /** One choice inside a group, priced as a delta from the dish's base price. */
 export interface DishOption {
@@ -24,6 +25,13 @@ export interface DishDocument extends Document {
   name: string;
   description: string;
   imageUrl: string;
+  /**
+   * A preset tile key, used when there is no photograph. Kept alongside
+   * `imageUrl` rather than written into it: a URL is a picture of this item, a
+   * preset is an admission that we do not have one, and the clients draw them
+   * differently.
+   */
+  imagePreset?: string;
   imagePublicId?: string;
   /** Minor units (cents). */
   price: number;
@@ -69,6 +77,7 @@ const dishSchema = new Schema<DishDocument>(
     name: { type: String, required: true, trim: true, maxlength: 80 },
     description: { type: String, default: "", trim: true, maxlength: 300 },
     imageUrl: { type: String, default: "" },
+    imagePreset: { type: String, enum: PRESET_KEYS },
     imagePublicId: { type: String },
     price: { type: Number, required: true, min: 0 },
     calories: { type: Number, min: 0 },
