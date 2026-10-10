@@ -30,6 +30,24 @@ caught by reading:
   not exist and kitchens being filed under no category at all when
   `seed:categories` had not been run first, both of which typecheck perfectly.
 
+- **The whole API, over the wire.** `api.check.mjs` boots the real server
+  against a throwaway MongoDB, seeds it, and calls every endpoint a client
+  uses — through the actual middleware stack. All four roles register, get
+  approved by an admin, sign in, and are checked for reaching only their own
+  surfaces. 81 assertions. It exists because of the search bug: the controller
+  fetched four result groups and returned two, and the two halves of that
+  contract live in different codebases and agree only by hand.
+
+- **Bug classes, swept mechanically.** `schema-drift.check.mjs` compares every
+  model's TypeScript interface against the paths Mongoose actually registered —
+  that is the `isVeg` bug, declared and required and never persisted.
+  `import-cycles.check.mjs` walks the value-import graph and then loads each
+  model first in its own process, which is the property that differed between a
+  working boot and `Cannot access 'PAYMENT_METHODS' before initialization`.
+  `reset.check.mjs` runs `reset:demo` and asserts no owner is left pointing at a
+  shop it deleted; its unlink used a bare `$exists`, which `sanitizeFilter`
+  casts to a literal, so it matched nothing and reported success.
+
 ## Running them
 
 They need `mongodb-memory-server`, which downloads a MongoDB binary on first
@@ -40,6 +58,13 @@ run and is deliberately not a dependency of the API:
     npx tsx src/scripts/checks/order-hooks.check.mjs
     npx tsx src/scripts/checks/register.check.mjs
     npx tsx src/scripts/checks/seed.check.mjs
+    npx tsx src/scripts/checks/reset.check.mjs
+    npx tsx src/scripts/checks/schema-drift.check.mjs
+    npx tsx src/scripts/checks/import-cycles.check.mjs
+    npx tsx src/scripts/checks/api.check.mjs
+
+The last one boots a server on a random high port and tears down its own
+process group; the others need nothing running.
 
 Each exits non-zero on the first failing assertion and prints every result, so
 the output reads as a list of what is true rather than a pass/fail.

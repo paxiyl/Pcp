@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 import { connectDatabase, disconnectDatabase } from "../config/database.config";
 import { BannerModel } from "../models/banner.model";
 import { BasketModel } from "../models/basket.model";
@@ -39,13 +41,30 @@ const resetDemoData = async () => {
     stores: (await StoreModel.deleteMany({})).deletedCount,
   };
 
+  /*
+    `mongoose.trusted` is required, not decorative: `sanitizeFilter` is set
+    globally in database.config, so a bare `{ $exists: true }` is cast to a
+    LITERAL and matches nothing. This update silently unlinked zero accounts and
+    logged that it had done its job — leaving owners pointing at stores that no
+    longer exist, which is the exact thing the comment at the top of this file
+    says it prevents. An owner in that state signs in and gets "Store not
+    found" instead of the friendly "not linked yet" message.
+
+    `restaurantId` was never unlinked at all, so kitchen owners kept a dangling
+    reference even when this did work.
+  */
   const unlinked = await UserModel.updateMany(
-    { storeId: { $exists: true } },
-    { $unset: { storeId: "" } },
+    {
+      $or: [
+        { storeId: mongoose.trusted({ $exists: true }) },
+        { restaurantId: mongoose.trusted({ $exists: true }) },
+      ],
+    },
+    { $unset: { restaurantId: "", storeId: "" } },
   );
 
   logger.info("Demo data cleared", cleared);
-  logger.info("Owners unlinked from deleted stores", {
+  logger.info("Owners unlinked from deleted shops and kitchens", {
     accounts: unlinked.modifiedCount,
   });
   logger.info("Kept: categories, users, settings");
