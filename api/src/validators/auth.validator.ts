@@ -1,10 +1,27 @@
 import { z } from "zod";
 
+import { PARTNER_ROLES } from "../models/partner-application.model";
+
 export const registerSchema = z.object({
   name: z.string().trim().min(2, "Enter your full name").max(80),
   email: z.string().trim().toLowerCase().email("Enter a valid email address"),
   password: z.string().min(8, "Use at least 8 characters").max(128),
   phone: z.string().trim().min(7, "Enter a valid phone number").max(32).optional(),
+  /**
+   * What they are signing up to BE.
+   *
+   * Still never a grant — the account created is always a customer, and this
+   * files an application for an admin to decide on. But it has to arrive WITH
+   * the registration: the app used to send it in a second request, so a
+   * failure there left someone an ordinary customer with no application and no
+   * sign anything had gone wrong. Which is exactly the "I signed up as a
+   * kitchen and it logged me in as a customer" report.
+   */
+  joinAs: z.enum(PARTNER_ROLES).optional(),
+  /** Required when `joinAs` is a shop or a kitchen. */
+  businessName: z.string().trim().min(2, "Enter the name").max(80).optional(),
+  area: z.string().trim().min(2).max(80).optional(),
+  vehicle: z.string().trim().min(2).max(60).optional(),
 });
 
 export const loginSchema = z.object({

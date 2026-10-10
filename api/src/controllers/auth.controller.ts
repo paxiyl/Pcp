@@ -16,13 +16,16 @@ import {
 
 export const registerController = asyncHandler(async (request: Request, response: Response) => {
   const input = registerSchema.parse(request.body);
-  const { accessToken, defaultAddress, hasAddress, user } = await registerUser(input);
+  const { accessToken, application, defaultAddress, hasAddress, user } =
+    await registerUser(input);
 
   setJwtAuthCookie(response, accessToken);
 
   return response.status(HTTPSTATUS.CREATED).json({
-    message: "Account created",
-    data: { accessToken, defaultAddress, hasAddress, user },
+    // Named for what happened, because the two outcomes need different screens:
+    // a customer goes shopping, an applicant goes to a waiting state.
+    message: application ? "Account created and your application sent" : "Account created",
+    data: { accessToken, application, defaultAddress, hasAddress, user },
   });
 });
 

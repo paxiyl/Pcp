@@ -11,14 +11,18 @@ import {
   registerController,
 } from "../../controllers/auth.controller";
 import { requireAuth } from "../../middlewares/auth.middleware";
-import { authLimiter } from "../../middlewares/rateLimiter.middleware";
+import {
+  googleLimiter,
+  loginLimiter,
+  registerLimiter,
+} from "../../middlewares/rateLimiter.middleware";
 
 export const authRoutes = Router();
 
-authRoutes.post("/register", authLimiter, registerController);
-authRoutes.post("/login", authLimiter, loginController);
-// Rate limited like a password login: an ID token is still a credential.
-authRoutes.post("/google", authLimiter, googleSignInController);
+authRoutes.post("/register", registerLimiter, registerController);
+authRoutes.post("/login", loginLimiter, loginController);
+// An ID token is still a credential, so failures count — on its own budget.
+authRoutes.post("/google", googleLimiter, googleSignInController);
 authRoutes.get("/providers", authProvidersController);
 authRoutes.post("/logout", logoutController);
 authRoutes.get("/me", requireAuth, currentUserController);

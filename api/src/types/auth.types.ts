@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { UserAddressDocument } from "../models/user-address.model";
+import { PartnerApplicationDocument } from "../models/partner-application.model";
 import { UserDocument } from "../models/user.model";
 import { loginSchema, registerSchema } from "../validators/auth.validator";
 
@@ -24,4 +25,13 @@ export type AuthResult = {
   hasAddress: boolean;
   /** Rendered straight into the home header, so no extra request on launch. */
   defaultAddress: UserAddressDocument | null;
+  /**
+   * Present when they signed up to be a shop, a kitchen or a rider. The
+   * account is still a customer — this is the request an admin will decide on.
+   *
+   * Returned here so the app can land them on "we have your application"
+   * instead of the customer home, which is what made signing up as a kitchen
+   * look like it had silently ignored the choice.
+   */
+  application?: PartnerApplicationDocument;
 };

@@ -6,6 +6,7 @@ import { GoogleSignInInput } from "../validators/auth.validator";
 import { BadRequestException, UnauthorizedException } from "../utils/app-error";
 import { signAccessToken } from "../utils/jwt";
 import { findDefaultAddress } from "./address.service";
+import { applyToBePartner } from "./partner-application.service";
 import { findUserByEmail, findUserByEmailWithPassword } from "./user.service";
 
 const issueToken = (user: UserDocument) =>
@@ -18,7 +19,20 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResult> =>
     throw new BadRequestException("An account with this email already exists");
   }
 
-  // Only ever a customer here; drivers and admins are created in the backoffice.
+  // A shop or a kitchen is identified by its name, so refuse BEFORE creating
+  // the account rather than after. Creating it first and then rejecting the
+  // application is how someone ends up an ordinary customer who thinks they
+  // signed up as a kitchen.
+  if (input.joinAs && input.joinAs !== "driver" && !input.businessName) {
+    throw new BadRequestException("Tell us the name of your shop or kitchen");
+  }
+
+  if (input.joinAs && !input.phone) {
+    throw new BadRequestException("We need a phone number to reach you about your application");
+  }
+
+  // Only ever a customer here. A role is granted by an admin approving the
+  // application below, never by asking for it at sign-up.
   const user = await UserModel.create({
     email: input.email.toLowerCase(),
     name: input.name,
@@ -27,8 +41,24 @@ export const registerUser = async (input: RegisterInput): Promise<AuthResult> =>
     role: "customer",
   });
 
+  const application = input.joinAs
+    ? await applyToBePartner(user, {
+        area: input.area,
+        businessName: input.businessName,
+        phone: input.phone as string,
+        requestedRole: input.joinAs,
+        vehicle: input.vehicle,
+      })
+    : undefined;
+
   // A brand new account cannot have an address yet.
-  return { accessToken: issueToken(user), defaultAddress: null, hasAddress: false, user };
+  return {
+    accessToken: issueToken(user),
+    application,
+    defaultAddress: null,
+    hasAddress: false,
+    user,
+  };
 };
 
 /** How a role is named to the person, rather than how it is stored. */
