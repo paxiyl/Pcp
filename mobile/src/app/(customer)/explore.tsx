@@ -22,7 +22,7 @@ import { PressableScale } from "@/components/ui/pressable-scale";
  * mosaic — rather than another wall of product cards, which is what the brief
  * was asking for when it said "visual storytelling instead of a wall of cards".
  *
- * It matters more here than anywhere else that OnlineMall sells medicine,
+ * It matters more here than anywhere else that Raket sells medicine,
  * cosmetics and clothes alongside atta. A customer who only ever sees the home
  * screen's grocery rails will never find out.
  */

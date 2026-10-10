@@ -8,7 +8,7 @@ type Props = {
 };
 
 /**
- * The OnlineMall lockup. Set in type rather than loaded as artwork, so it stays
+ * The Raket lockup. Set in type rather than loaded as artwork, so it stays
  * sharp at every size and matches the mobile app's mark exactly.
  */
 export function Wordmark({ className, size = "sm", tone = "brand" }: Props) {
@@ -23,8 +23,8 @@ export function Wordmark({ className, size = "sm", tone = "brand" }: Props) {
           tone === "inverse" ? "text-white" : "text-foreground",
         )}
       >
-        Online
-        <span className={tone === "inverse" ? "text-white" : "text-primary"}>Mall</span>
+        Raket
+        <span className={tone === "inverse" ? "text-white" : "text-primary"}>Delivery</span>
       </span>
 
       <span

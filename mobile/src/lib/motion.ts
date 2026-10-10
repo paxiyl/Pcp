@@ -10,7 +10,7 @@ import {
 } from "react-native-reanimated";
 
 /**
- * OnlineMall motion language.
+ * Raket motion language.
  *
  * One rule decides everything here: motion explains a change, it does not
  * decorate one. Entrances are short, exits are shorter, and anything the finger

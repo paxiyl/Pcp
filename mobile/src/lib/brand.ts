@@ -7,14 +7,14 @@
  */
 export const BRAND = {
   /** The wordmark. Used alone wherever the city is already obvious. */
-  name: "OnlineMall",
+  name: "Raket",
   /** The full lockup, for first-run surfaces and anywhere trust is being built. */
-  fullName: "OnlineMall (Hindaun)",
+  fullName: "Raket Delivery",
   city: "Hindaun City",
   region: "Rajasthan",
   /** The promise, in the user's words rather than ours. */
   tagline: "Hindaun ka apna store, minutes mein.",
   taglineEn: "Your whole city, delivered in minutes.",
   searchPlaceholder: "Search for atta, milk, snacks\u2026",
-  supportEmail: "help@onlinemall.in",
+  supportEmail: "help@raketdelivery.in",
 } as const;

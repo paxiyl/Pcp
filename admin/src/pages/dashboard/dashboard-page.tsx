@@ -35,7 +35,7 @@ export function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">
             {greeting()}, {firstName}
           </h1>
-          <p className="text-muted-foreground">Here is what is happening across OnlineMall today.</p>
+          <p className="text-muted-foreground">Here is what is happening across Raket today.</p>
         </div>
 
         <Button

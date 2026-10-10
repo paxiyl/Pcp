@@ -7,7 +7,7 @@ import { BRAND } from "@/lib/brand";
  * Opening a payment sheet, behind one seam.
  *
  * The screen asks for a result; it never learns which gateway produced it. That
- * matters here because OnlineMall runs two: Razorpay for India (UPI, cards,
+ * matters here because Raket runs two: Razorpay for India (UPI, cards,
  * netbanking, wallets) and Stripe, kept for international cards.
  *
  * `react-native-razorpay` is NOT yet a dependency of this app — adding a native

@@ -53,7 +53,7 @@ API.interceptors.response.use(
 
     if (!error.response) {
       throw new ApiError(
-        "Can't reach the OnlineMall API. Check that it is running and try again.",
+        "Can't reach the Raket API. Check that it is running and try again.",
         0,
         "ERR_NETWORK",
       );

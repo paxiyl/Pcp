@@ -1,7 +1,7 @@
 import { API } from "./axios-client";
 
 /**
- * Every call the app makes to the OnlineMall API lives here, one function per
+ * Every call the app makes to the Raket API lives here, one function per
  * endpoint. Screens pass these straight to TanStack Query:
  *
  *   useMutation({ mutationFn: loginMutationFn })

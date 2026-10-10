@@ -101,7 +101,7 @@ export function SignInPage() {
           {/* Sits in the teal band above the photo rather than centred over it. */}
           <div className="mt-12 flex flex-col gap-4">
             <p className="text-primary-foreground/70 text-xs font-semibold tracking-[0.2em] uppercase">
-              OnlineMall operations
+              Raket operations
             </p>
             <h2 className="max-w-md text-4xl font-bold tracking-tight text-balance">
               Everything your delivery network needs.
@@ -134,7 +134,7 @@ export function SignInPage() {
                 Admin portal
               </p>
               <h1 className="text-4xl font-bold tracking-tight">Welcome back</h1>
-              <p className="text-muted-foreground">Sign in to manage OnlineMall operations.</p>
+              <p className="text-muted-foreground">Sign in to manage Raket operations.</p>
             </div>
 
             <FieldGroup>
@@ -248,7 +248,7 @@ export function SignInPage() {
         </div>
 
         <p className="text-muted-foreground text-right text-xs">
-          © {new Date().getFullYear()} OnlineMall (Hindaun)
+          © {new Date().getFullYear()} Raket (Hindaun)
         </p>
       </div>
     </div>

@@ -77,7 +77,7 @@ export default function StoreInventoryScreen() {
           Shelf
         </Text>
         <Text className="font-sans text-label text-text-secondary">
-          Counts and listing. Prices are set by OnlineMall.
+          Counts and listing. Prices are set by Raket.
         </Text>
       </View>
 
@@ -115,7 +115,7 @@ export default function StoreInventoryScreen() {
             message={
               debounced
                 ? `Nothing on your shelf matches "${debounced}".`
-                : "OnlineMall adds products to your shelf. Contact support to list something new."
+                : "Raket adds products to your shelf. Contact support to list something new."
             }
             title="Nothing here"
             {...(debounced ? { actionLabel: "Clear search", onAction: () => setSearch("") } : {})}

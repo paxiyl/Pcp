@@ -91,7 +91,7 @@ export default function SignUpScreen() {
           const firstName = response.data.user.name.split(" ")[0];
 
           if (joinAs === "customer") {
-            toast.success(`Welcome to OnlineMall, ${firstName}`);
+            toast.success(`Welcome to Raket, ${firstName}`);
             router.replace(response.data.hasAddress ? "/home" : "/location");
 
             return;

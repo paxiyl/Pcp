@@ -289,7 +289,7 @@ export default function CheckoutScreen() {
             ) : null}
           </View>
 
-          {/* Card is the only method OnlineMall takes today; UPI and COD arrive with Razorpay, so there is nothing to change. */}
+          {/* Card is the only method Raket takes today; UPI and COD arrive with Razorpay, so there is nothing to change. */}
           <View className="flex-row items-center gap-3 border-t border-border p-4">
             <Ionicons color={subtle as string} name="card-outline" size={20} />
             <View className="flex-1">

@@ -111,7 +111,7 @@ export function CategoriesPage() {
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
           <p className="text-muted-foreground">
-            Organise how customers discover products across OnlineMall.
+            Organise how customers discover products across Raket.
           </p>
         </div>
 

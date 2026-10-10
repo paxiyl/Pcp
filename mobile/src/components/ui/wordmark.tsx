@@ -17,7 +17,7 @@ const nameSize = {
 } as const;
 
 /**
- * The OnlineMall lockup: "Online" in text colour, "Mall" in the brand green, so
+ * The Raket lockup: "Raket" in text colour, "Delivery" in the brand green, so
  * the mark reads as one word while still carrying the brand colour. Set in the
  * title weight with tight tracking — no logo image, so it stays sharp at every
  * size and follows the theme without a second asset.
@@ -33,8 +33,8 @@ export function Wordmark({ tone = "brand", size = "title", showCity = false }: P
         className={`font-title ${nameSize[size]} ${inverse ? "text-white" : "text-foreground"}`}
         style={{ letterSpacing: -0.6 }}
       >
-        Online
-        <Text className={inverse ? "text-white" : "text-primary"}>Mall</Text>
+        Raket
+        <Text className={inverse ? "text-white" : "text-primary"}>Delivery</Text>
       </Text>
 
       {showCity ? (

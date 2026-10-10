@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "OnlineMall",
-    "slug": "onlinemall-hindaun",
+    "name": "Raket",
+    "slug": "raket-delivery",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "onlinemall",
+    "scheme": "raket",
     "userInterfaceStyle": "automatic",
     "platforms": [
       "ios",
@@ -13,7 +13,7 @@
     ],
     "ios": {
       "icon": "./assets/images/ios-icon.png",
-      "bundleIdentifier": "in.onlinemall.hindaun"
+      "bundleIdentifier": "in.raketdelivery.app"
     },
     "android": {
       "icon": "./assets/images/icon.png",
@@ -23,7 +23,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "in.onlinemall.hindaun"
+      "package": "in.raketdelivery.app"
     },
     "plugins": [
       "expo-router",
@@ -43,7 +43,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "OnlineMall uses your location to show stores that deliver to you in Hindaun and to prefill your delivery address."
+          "locationWhenInUsePermission": "Raket uses your location to show stores that deliver to you in Hindaun and to prefill your delivery address."
         }
       ],
       "expo-secure-store",

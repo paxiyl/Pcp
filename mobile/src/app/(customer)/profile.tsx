@@ -135,7 +135,7 @@ export default function ProfileScreen() {
         {
           detail: `${BRAND.fullName} · ${BRAND.region}`,
           icon: "information-circle-outline",
-          label: "About OnlineMall",
+          label: "About Raket",
           onPress: () =>
             Alert.alert(BRAND.fullName, `${BRAND.taglineEn}\n\nServing ${BRAND.city}, ${BRAND.region}.`),
         },

@@ -92,7 +92,7 @@ export default function LocationScreen() {
             <Ionicons color={subtle as string} name="information-circle-outline" size={20} />
             <View className="flex-1 gap-2">
               <Text className="font-sans text-body text-foreground">
-                Location is turned off for OnlineMall. You can enter your address by hand instead, or
+                Location is turned off for Raket. You can enter your address by hand instead, or
                 turn it on in Settings.
               </Text>
               <Text

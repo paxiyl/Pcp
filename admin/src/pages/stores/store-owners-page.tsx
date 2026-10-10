@@ -146,7 +146,7 @@ export function StoreOwnersPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Store owners</h1>
           <p className="text-muted-foreground text-sm">
-            Accounts that manage a shop from the OnlineMall app.
+            Accounts that manage a shop from the Raket app.
           </p>
         </div>
 

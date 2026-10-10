@@ -309,7 +309,7 @@ export function SettingsPage() {
           <Card>
             <CardHeader>
               <SectionTitle
-                description="Percentage OnlineMall keeps from each order."
+                description="Percentage Raket keeps from each order."
                 icon={CoinsIcon}
                 title="Platform commission"
               />
@@ -343,7 +343,7 @@ export function SettingsPage() {
                     <p className="text-2xl font-bold tracking-tight">{100 - commission}%</p>
                   </div>
                   <div className="flex flex-col">
-                    <p className="text-muted-foreground text-sm">OnlineMall commission</p>
+                    <p className="text-muted-foreground text-sm">Raket commission</p>
                     <p className="text-2xl font-bold tracking-tight">{commission}%</p>
                   </div>
                 </div>

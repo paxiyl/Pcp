@@ -102,7 +102,7 @@ export function StoreOwnerFormDialog({ owner, stores, onOpenChange, open }: Prop
         <DialogHeader>
           <DialogTitle>{owner ? "Edit store owner" : "Add store owner"}</DialogTitle>
           <DialogDescription>
-            They sign in on the OnlineMall app and pick "Store owner".
+            They sign in on the Raket app and pick "Store owner".
           </DialogDescription>
         </DialogHeader>
 

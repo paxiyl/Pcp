@@ -54,7 +54,7 @@ API.interceptors.response.use(
     if (status === 401) await clearAccessToken();
     if (!error.response) {
       throw new ApiError(
-        "Can't reach OnlineMall right now. Check your connection and try again.",
+        "Can't reach Raket right now. Check your connection and try again.",
         0,
         "ERR_NETWORK",
       );

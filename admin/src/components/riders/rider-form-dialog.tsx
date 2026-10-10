@@ -138,7 +138,7 @@ export function RiderFormDialog({ rider, onOpenChange, open }: Props) {
             <DialogDescription>
               {rider
                 ? "Update the rider's contact details and approval."
-                : "Create a rider account. They sign in to the OnlineMall delivery app with this email."}
+                : "Create a rider account. They sign in to the Raket delivery app with this email."}
             </DialogDescription>
           </DialogHeader>
 

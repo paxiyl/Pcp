@@ -172,7 +172,7 @@ export default function SignInScreen() {
           </Animated.View>
 
           <View className="mt-auto flex-row items-center justify-center pt-8">
-            <Text className="font-sans text-body text-muted-foreground">New to OnlineMall? </Text>
+            <Text className="font-sans text-body text-muted-foreground">New to Raket? </Text>
             <Text
               accessibilityRole="link"
               className="font-heading text-body text-primary"

@@ -13,7 +13,7 @@ import type { AdminStore } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 
 /**
- * Every shop OnlineMall delivers from.
+ * Every shop Raket delivers from.
  *
  * Operational density, not storefront polish: a row is a decision about whether
  * a shop is trading and on what terms, so ETA, fees and the minimum sit on the
@@ -111,7 +111,7 @@ export function StoresPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Stores</h1>
           <p className="text-muted-foreground text-sm">
-            Shops delivering for OnlineMall across Hindaun.
+            Shops delivering for Raket across Hindaun.
           </p>
         </div>
 
