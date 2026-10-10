@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1006668530225",
+    "project_id": "raket-c2e81",
+    "storage_bucket": "raket-c2e81.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1006668530225:android:41603a286e0558bd2bcb10",
+        "android_client_info": {
+          "package_name": "in.raketdelivery.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcjf7-pzaEIfq9OfJy2dQIX0naaoLI-Qk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

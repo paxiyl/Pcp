@@ -35,6 +35,13 @@ const envConfig = () => ({
    */
   GOOGLE_CLIENT_IDS: getEnv("GOOGLE_CLIENT_IDS", ""),
 
+  /**
+   * Path to the Firebase service account JSON on disk. Empty turns push off,
+   * which is the default. A path rather than the JSON itself: a multi-line
+   * private key in an env var ends up in logs and process listings.
+   */
+  FIREBASE_SERVICE_ACCOUNT: getEnv("FIREBASE_SERVICE_ACCOUNT", ""),
+
   JWT_SECRET: getEnv("JWT_SECRET"),
   JWT_EXPIRES_IN: getEnv("JWT_EXPIRES_IN", "7d"),
 });

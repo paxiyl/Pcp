@@ -3,11 +3,16 @@ import { Request, Response } from "express";
 import { isGoogleSignInConfigured } from "../config/google.config";
 import { HTTPSTATUS } from "../config/http-status.config";
 import { asyncHandler } from "../middlewares/asyncHandler.middleware";
-import { UserDocument } from "../models/user.model";
+import { UserDocument, UserModel } from "../models/user.model";
 import { findDefaultAddress } from "../services/address.service";
 import { loginUser, registerUser, signInWithGoogle } from "../services/auth.service";
 import { clearJwtAuthCookie, setJwtAuthCookie } from "../utils/cookie";
-import { googleSignInSchema, loginSchema, registerSchema } from "../validators/auth.validator";
+import {
+  googleSignInSchema,
+  loginSchema,
+  pushTokenSchema,
+  registerSchema,
+} from "../validators/auth.validator";
 
 export const registerController = asyncHandler(async (request: Request, response: Response) => {
   const input = registerSchema.parse(request.body);
@@ -62,5 +67,34 @@ export const authProvidersController = asyncHandler(
     return response
       .status(HTTPSTATUS.OK)
       .json({ message: "Providers", data: { google: isGoogleSignInConfigured() } });
+  },
+);
+
+/**
+ * Registering a device for notifications.
+ *
+ * $addToSet rather than $push: re-opening the app re-registers the same token,
+ * and a list with the same token forty times would send forty notifications.
+ */
+export const registerPushTokenController = asyncHandler(
+  async (request: Request, response: Response) => {
+    const { token } = pushTokenSchema.parse(request.body);
+    const user = request.user as UserDocument;
+
+    await UserModel.updateOne({ _id: user._id }, { $addToSet: { pushTokens: token } }).exec();
+
+    return response.status(HTTPSTATUS.OK).json({ message: "Notifications on" });
+  },
+);
+
+/** Called on sign-out, so the next person on this phone is not notified. */
+export const removePushTokenController = asyncHandler(
+  async (request: Request, response: Response) => {
+    const { token } = pushTokenSchema.parse(request.body);
+    const user = request.user as UserDocument;
+
+    await UserModel.updateOne({ _id: user._id }, { $pull: { pushTokens: token } }).exec();
+
+    return response.status(HTTPSTATUS.OK).json({ message: "Notifications off" });
   },
 );

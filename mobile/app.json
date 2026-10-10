@@ -23,7 +23,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "in.raketdelivery.app"
+      "package": "in.raketdelivery.app",
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-router",

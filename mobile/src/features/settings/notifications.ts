@@ -1,27 +1,53 @@
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
+
+import { registerPushTokenMutationFn, removePushTokenMutationFn } from "@/lib/api";
 
 /**
- * Push notifications, behind one seam.
+ * Push notifications.
  *
- * `expo-notifications` is NOT a dependency yet. It is a native module, so adding
- * it changes the build and needs a prebuild — not something to slip in silently:
- *
- *   npx expo install expo-notifications
- *   npx expo prebuild --clean
- *
- * then replace the two bodies below with `Notifications.getPermissionsAsync()`
- * and `requestPermissionsAsync()` / `getExpoPushTokenAsync()`. Every call site is
- * already correct.
- *
- * The decision itself is stored either way, because the thing that actually
- * matters here is not the OS permission — it is that we only ever ask ONCE, at a
- * moment the customer can see the point of it.
+ * The decision is stored separately from the OS permission, because the thing
+ * that actually matters is not whether Android said yes — it is that we only
+ * ever ask ONCE, at a moment the customer can see the point of it.
  */
 
 const ASKED_KEY = "onlinemall.pushAsked";
 const CHOICE_KEY = "onlinemall.pushChoice";
+const TOKEN_KEY = "onlinemall.pushToken";
 
 export type PushChoice = "granted" | "declined" | "unasked";
+
+/** Banners while the app is open. Without this, a foreground push is silent. */
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+/**
+ * Android 8+ ignores any notification whose channel does not exist, silently.
+ * Creating it is idempotent, so this runs on every start rather than being
+ * tracked as state that could drift.
+ */
+export const ensureAndroidChannel = async (): Promise<void> => {
+  if (Platform.OS !== "android") return;
+
+  try {
+    await Notifications.setNotificationChannelAsync("orders", {
+      importance: Notifications.AndroidImportance.HIGH,
+      lightColor: "#1FA85C",
+      name: "Order updates",
+      vibrationPattern: [0, 250, 250, 250],
+    });
+  } catch {
+    // A channel that cannot be created means no notifications, not a crash.
+  }
+};
 
 export const getPushChoice = async (): Promise<PushChoice> => {
   try {
@@ -36,11 +62,9 @@ export const getPushChoice = async (): Promise<PushChoice> => {
 /**
  * Whether the primer is worth showing.
  *
- * iOS gives exactly one chance at the system prompt: once it is dismissed, the
- * only way back is Settings. So the app asks its own question first, and only
- * reaches the OS prompt after the customer has already said yes to ours. Asking
- * at app launch — before there is any order to be notified about — is how that
- * one chance gets wasted.
+ * The app asks its own question first, and only reaches the OS prompt after
+ * the customer has already said yes to ours. Asking at launch — before there
+ * is any order to be notified about — is how that one chance gets wasted.
  */
 export const shouldAskForPush = async (): Promise<boolean> => {
   try {
@@ -61,16 +85,67 @@ const remember = async (choice: PushChoice) => {
   }
 };
 
-/**
- * Called after the customer accepts OUR primer. Once the SDK is installed this
- * is where the system prompt is raised and the Expo push token is registered.
- */
+/** Called after the customer accepts OUR primer. */
 export const enablePush = async (): Promise<boolean> => {
-  await remember("granted");
+  // An emulator has no FCM token to give, so asking would always fail.
+  if (!Device.isDevice) {
+    await remember("declined");
 
-  return true;
+    return false;
+  }
+
+  try {
+    await ensureAndroidChannel();
+
+    const existing = await Notifications.getPermissionsAsync();
+    const decision =
+      existing.granted || existing.status === "granted"
+        ? existing
+        : await Notifications.requestPermissionsAsync();
+
+    if (!decision.granted && decision.status !== "granted") {
+      await remember("declined");
+
+      return false;
+    }
+
+    // The raw FCM token, not an Expo push token: the server talks to Firebase
+    // directly, so there is no Expo project to route through.
+    const { data: token } = await Notifications.getDevicePushTokenAsync();
+
+    await registerPushTokenMutationFn(token);
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await remember("granted");
+
+    return true;
+  } catch {
+    // Permission may well have been granted even if registering the token
+    // failed, but without a token on the server nothing can be delivered —
+    // so this counts as off, and the customer can retry from their profile.
+    await remember("declined");
+
+    return false;
+  }
 };
 
 export const declinePush = async (): Promise<void> => {
   await remember("declined");
+};
+
+/**
+ * Called on sign-out. Without this the next person to sign in on this phone
+ * keeps receiving the previous account's order updates.
+ */
+export const releasePushToken = async (): Promise<void> => {
+  try {
+    const token = await SecureStore.getItemAsync(TOKEN_KEY);
+
+    if (!token) return;
+
+    await removePushTokenMutationFn(token);
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+  } catch {
+    // Best effort: a stale token on the server is dropped when FCM reports it
+    // as unregistered.
+  }
 };

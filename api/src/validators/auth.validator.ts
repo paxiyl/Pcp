@@ -37,3 +37,10 @@ export type GoogleSignInInput = z.infer<typeof googleSignInSchema>;
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+
+/** An FCM device token, registered after the customer accepts notifications. */
+export const pushTokenSchema = z.object({
+  token: z.string().trim().min(10, "Invalid device token").max(4096),
+});
+
+export type PushTokenInput = z.infer<typeof pushTokenSchema>;

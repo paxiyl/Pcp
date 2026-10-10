@@ -761,3 +761,13 @@ export const applyToBePartnerMutationFn = async (
 
 export const getMyApplicationQueryFn = async (): Promise<MyApplicationResponse> =>
   API.get("/partner-applications/mine");
+
+/* Push notifications */
+
+export const registerPushTokenMutationFn = async (
+  token: string,
+): Promise<{ message: string }> => API.post("/auth/push-token", { token });
+
+export const removePushTokenMutationFn = async (
+  token: string,
+): Promise<{ message: string }> => API.delete("/auth/push-token", { data: { token } });

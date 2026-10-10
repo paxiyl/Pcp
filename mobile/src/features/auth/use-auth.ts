@@ -7,6 +7,7 @@ import {
   logoutMutationFn,
   registerMutationFn,
 } from "@/lib/api";
+import { releasePushToken } from "@/features/settings/notifications";
 import { queryKeys } from "@/lib/query-client";
 import { clearAccessToken, setAccessToken } from "./token-storage";
 
@@ -76,6 +77,10 @@ export const useLogout = () => {
     mutationFn: logoutMutationFn,
     // Local sign-out must happen even when the network call fails.
     onSettled: async () => {
+      // Released before the token is cleared, while the request can still
+      // authenticate: otherwise the next person to sign in on this phone keeps
+      // receiving the previous account's order updates.
+      await releasePushToken();
       await clearAccessToken();
       queryClient.clear();
       router.replace("/welcome");

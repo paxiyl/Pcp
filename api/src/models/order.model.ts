@@ -1,5 +1,6 @@
 import { Document, model, Schema, Types } from "mongoose";
 
+import { notifyOrderStatus } from "../services/notification.service";
 import { VendorKind } from "./basket.model";
 
 /**
@@ -329,6 +330,30 @@ orderSchema.pre("validate", function requireMatchingVendor() {
   if (hasRestaurant === hasStore) {
     throw new Error("An order must reference exactly one restaurant or one store");
   }
+});
+
+/**
+ * Notify on every status change, from one place.
+ *
+ * There are nine sites that move an order's status across four services, and
+ * a tenth will be written eventually. Wiring each one by hand means the day
+ * someone adds a new transition, the customer silently stops being told. A
+ * hook cannot be forgotten.
+ *
+ * isModified is only readable BEFORE the save completes, so the pre hook
+ * records it and the post hook acts on it.
+ */
+orderSchema.pre("save", function markStatusChange() {
+  this.$locals.statusChanged = this.isModified("status");
+});
+
+orderSchema.post("save", function notifyOnStatusChange(doc: OrderDocument) {
+  if (!doc.$locals.statusChanged) return;
+
+  // Deliberately not awaited: the order is already saved, and a slow or failed
+  // notification must not hold up the response or fail the request. The
+  // service swallows its own errors.
+  void notifyOrderStatus(doc);
 });
 
 export const OrderModel = model<OrderDocument>("Order", orderSchema);

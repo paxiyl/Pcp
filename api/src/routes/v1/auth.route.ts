@@ -4,6 +4,8 @@ import {
   authProvidersController,
   currentUserController,
   googleSignInController,
+  registerPushTokenController,
+  removePushTokenController,
   loginController,
   logoutController,
   registerController,
@@ -20,3 +22,5 @@ authRoutes.post("/google", authLimiter, googleSignInController);
 authRoutes.get("/providers", authProvidersController);
 authRoutes.post("/logout", logoutController);
 authRoutes.get("/me", requireAuth, currentUserController);
+authRoutes.post("/push-token", requireAuth, registerPushTokenController);
+authRoutes.delete("/push-token", requireAuth, removePushTokenController);

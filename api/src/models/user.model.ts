@@ -24,6 +24,12 @@ export interface UserDocument extends Document {
   _id: Types.ObjectId;
   name: string;
   email: string;
+  /**
+   * FCM device tokens. A list because one person signs in on more than one
+   * phone, and a notification that only reaches the oldest one is worse than
+   * none — they stop trusting it.
+   */
+  pushTokens: string[];
   /** Absent on an account that only ever signed in with Google. */
   password?: string;
   /** Google's stable subject id. Never the email, which can be reassigned. */
@@ -75,6 +81,7 @@ const userSchema = new Schema<UserDocument>(
       select: false,
     },
     googleId: { type: String, index: true, sparse: true, unique: true },
+    pushTokens: { type: [String], default: [] },
     phone: { type: String, trim: true, maxlength: 32 },
     role: { type: String, enum: USER_ROLES, default: "customer", index: true },
     storeId: { type: Schema.Types.ObjectId, ref: "Store", index: true, sparse: true },
