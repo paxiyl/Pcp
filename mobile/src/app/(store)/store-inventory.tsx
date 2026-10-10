@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { useCSSVariable } from "uniwind";
 
 import { EmptyState } from "@/components/ui/empty-state";
@@ -8,6 +9,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { Screen } from "@/components/ui/screen";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  useDeleteStoreProduct,
   useStoreOwnerProducts,
   useUpdateStoreStock,
 } from "@/features/store-owner/use-store-owner";
@@ -22,17 +24,21 @@ import { toast } from "@/lib/sonner";
  * packs with one hand is not going to type, and a stepper cannot produce the
  * kind of typo that lists 500 bags of atta.
  *
- * Price is read-only here on purpose — it is a commercial agreement, and a price
- * that can move from a phone can change a basket's total between a customer
- * adding an item and paying for it. Price edits stay in the backoffice.
+ * Price is read-only here on purpose: a price that can move from this screen
+ * changes a basket's total between a customer adding an item and paying for it.
+ * It is asked for on the add screen instead, where the product is not yet in
+ * anybody's basket and the person listing it is the only one who knows the
+ * figure.
  */
 export default function StoreInventoryScreen() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
-  const [subtle, error, warning] = useCSSVariable([
+  const [subtle, error, warning, destructive] = useCSSVariable([
     "--color-text-muted",
     "--color-error",
     "--color-warning",
+    "--color-destructive",
   ]);
 
   useEffect(() => {
@@ -45,6 +51,7 @@ export default function StoreInventoryScreen() {
     debounced || undefined,
   );
   const update = useUpdateStoreStock();
+  const remove = useDeleteStoreProduct();
 
   const change = async (productId: string, next: number) => {
     if (next < 0) return;
@@ -70,15 +77,55 @@ export default function StoreInventoryScreen() {
     }
   };
 
+  /*
+    Delisting and selling out are different things, and the switch above already
+    does the second one. The confirm says which is which, because "remove" on a
+    shelf of fifty items is a tap somebody will make by mistake.
+  */
+  const confirmRemove = (productId: string, name: string) => {
+    Alert.alert(
+      `Remove ${name}?`,
+      "It comes off your shelf for good. If you have just sold out, set the count to 0 instead.",
+      [
+        { style: "cancel", text: "Keep it" },
+        {
+          onPress: async () => {
+            try {
+              await remove.mutateAsync(productId);
+              toast.success(`${name} removed`);
+            } catch (err) {
+              toast.error("Could not remove that product", {
+                description: err instanceof Error ? err.message : "Please try again.",
+              });
+            }
+          },
+          style: "destructive",
+          text: "Remove",
+        },
+      ],
+    );
+  };
+
   return (
     <Screen edges={["top"]}>
-      <View className="px-gutter pt-4">
-        <Text accessibilityRole="header" className="font-title text-display text-foreground">
-          Shelf
-        </Text>
-        <Text className="font-sans text-label text-text-secondary">
-          Counts and listing. Prices are set by Raket.
-        </Text>
+      <View className="flex-row items-center gap-3 px-gutter pt-4">
+        <View className="flex-1">
+          <Text accessibilityRole="header" className="font-title text-display text-foreground">
+            Shelf
+          </Text>
+          <Text className="font-sans text-label text-text-secondary">
+            Counts and listing here. Prices on the add screen.
+          </Text>
+        </View>
+
+        <Pressable
+          accessibilityLabel="Add a product"
+          accessibilityRole="button"
+          className="h-11 w-11 items-center justify-center rounded-pill bg-primary active:bg-primary-pressed"
+          onPress={() => router.push("/product-new")}
+        >
+          <Ionicons color="#ffffff" name="add" size={24} />
+        </Pressable>
       </View>
 
       <View className="px-gutter pt-4">
@@ -115,10 +162,12 @@ export default function StoreInventoryScreen() {
             message={
               debounced
                 ? `Nothing on your shelf matches "${debounced}".`
-                : "Raket adds products to your shelf. Contact support to list something new."
+                : "Add your first product and customers can order it straight away."
             }
             title="Nothing here"
-            {...(debounced ? { actionLabel: "Clear search", onAction: () => setSearch("") } : {})}
+            {...(debounced
+              ? { actionLabel: "Clear search", onAction: () => setSearch("") }
+              : { actionLabel: "Add a product", onAction: () => router.push("/product-new") })}
           />
         ) : (
           <View className="gap-2 px-gutter pt-4">
@@ -129,7 +178,15 @@ export default function StoreInventoryScreen() {
               return (
                 <View className="gap-3 rounded-card bg-surface p-4" key={product._id}>
                   <View className="flex-row items-start justify-between gap-3">
-                    <View className="flex-1">
+                    {/* The name opens the editor; the switch beside it does not,
+                        so a tap meant for one is never the other. */}
+                    <Pressable
+                      accessibilityHint="Opens the product for editing"
+                      accessibilityLabel={`Edit ${product.name}`}
+                      accessibilityRole="button"
+                      className="flex-1"
+                      onPress={() => router.push(`/product-new?id=${product._id}`)}
+                    >
                       <Text className="font-label text-body text-foreground" numberOfLines={2}>
                         {product.name}
                       </Text>
@@ -139,7 +196,7 @@ export default function StoreInventoryScreen() {
                           : product.unit}{" "}
                         · {formatPrice(product.price)}
                       </Text>
-                    </View>
+                    </Pressable>
 
                     <Switch
                       accessibilityLabel={`List ${product.name}`}
@@ -167,38 +224,51 @@ export default function StoreInventoryScreen() {
                       </Text>
                     </View>
 
-                    <View className="h-10 flex-row items-center rounded-chip border border-border">
+                    <View className="flex-row items-center gap-1">
                       <Pressable
-                        accessibilityLabel={`Reduce ${product.name}`}
+                        accessibilityLabel={`Remove ${product.name}`}
                         accessibilityRole="button"
-                        className="h-full w-11 items-center justify-center active:opacity-60"
-                        disabled={out || update.isPending}
-                        onPress={() => void change(product._id, product.stock - 1)}
+                        className="h-10 w-10 items-center justify-center"
+                        disabled={remove.isPending}
+                        hitSlop={4}
+                        onPress={() => confirmRemove(product._id, product.name)}
                       >
-                        <Ionicons
-                          color={subtle as string}
-                          name="remove"
-                          size={18}
-                          style={{ opacity: out ? 0.4 : 1 }}
-                        />
+                        <Ionicons color={destructive as string} name="trash-outline" size={18} />
                       </Pressable>
 
-                      <Text
-                        className="min-w-12 text-center font-title text-body text-foreground"
-                        style={{ fontVariant: ["tabular-nums"] }}
-                      >
-                        {product.stock}
-                      </Text>
+                      <View className="h-10 flex-row items-center rounded-chip border border-border">
+                        <Pressable
+                          accessibilityLabel={`Reduce ${product.name}`}
+                          accessibilityRole="button"
+                          className="h-full w-11 items-center justify-center active:opacity-60"
+                          disabled={out || update.isPending}
+                          onPress={() => void change(product._id, product.stock - 1)}
+                        >
+                          <Ionicons
+                            color={subtle as string}
+                            name="remove"
+                            size={18}
+                            style={{ opacity: out ? 0.4 : 1 }}
+                          />
+                        </Pressable>
 
-                      <Pressable
-                        accessibilityLabel={`Add ${product.name}`}
-                        accessibilityRole="button"
-                        className="h-full w-11 items-center justify-center active:opacity-60"
-                        disabled={update.isPending}
-                        onPress={() => void change(product._id, product.stock + 1)}
-                      >
-                        <Ionicons color={subtle as string} name="add" size={18} />
-                      </Pressable>
+                        <Text
+                          className="min-w-12 text-center font-title text-body text-foreground"
+                          style={{ fontVariant: ["tabular-nums"] }}
+                        >
+                          {product.stock}
+                        </Text>
+
+                        <Pressable
+                          accessibilityLabel={`Add ${product.name}`}
+                          accessibilityRole="button"
+                          className="h-full w-11 items-center justify-center active:opacity-60"
+                          disabled={update.isPending}
+                          onPress={() => void change(product._id, product.stock + 1)}
+                        >
+                          <Ionicons color={subtle as string} name="add" size={18} />
+                        </Pressable>
+                      </View>
                     </View>
                   </View>
                 </View>

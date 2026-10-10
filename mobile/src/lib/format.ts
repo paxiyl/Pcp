@@ -79,3 +79,26 @@ export const formatClosingTime = (value: string): string => {
 
   return `${hour12}:${String(minutes).padStart(2, "0")} ${suffix}`;
 };
+
+/**
+ * What a shopkeeper typed, in paise.
+ *
+ * The inverse of `formatPrice`, and the only place a rupee figure becomes a
+ * stored amount. It is separated out and checked
+ * (`api/src/scripts/checks/money.check.mjs`) because the failure mode is not a
+ * crash: read "120" as 120 instead of 12000 and a shop sells atta for ₹1.20
+ * until somebody notices, and `Number("120.5") * 100` is 12050.000000000002
+ * before rounding, which is how a float reaches a field that is documented as
+ * an integer.
+ *
+ * Returns null for anything that is not a plain positive amount, so the caller
+ * shows a field error rather than storing a guess. More than two decimal places
+ * is a typo, not a price: no Indian shop charges in fractions of a paisa.
+ */
+export const parseRupees = (value: string): number | null => {
+  const text = value.trim().replace(/[\s,₹]/g, "");
+
+  if (!/^\d+(\.\d{1,2})?$/.test(text)) return null;
+
+  return Math.round(Number(text) * 100);
+};

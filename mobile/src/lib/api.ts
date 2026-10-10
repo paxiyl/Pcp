@@ -614,6 +614,49 @@ export const setStoreOpenMutationFn = async (
   isOpen: boolean,
 ): Promise<StoreOwnerStoreResponse> => API.patch("/store-owner/open", { isOpen });
 
+type StoreOwnerProductResponse = { message: string; data: { product: Product } };
+
+/**
+ * What a shopkeeper may set on a product of their own.
+ *
+ * Price IS here, unlike the stock PATCH above. The reason the shelf screen
+ * refuses price edits is that a price moving under a customer's basket changes
+ * a total they already saw — but a product being added does not exist in
+ * anybody's basket yet, and whoever puts it on the shelf is the only person who
+ * knows what it costs. Rating, review count and the popular flag are the
+ * server's to set, so they are not in this type at all.
+ */
+export type OwnerProductInput = {
+  name: string;
+  /** The pack size, as the shop says it: "1 kg", "500 ml", "pack of 6". */
+  unit: string;
+  categoryId: string;
+  /** Paise, so nothing is ever a float. */
+  price: number;
+  description?: string;
+  brand?: string;
+  imagePreset?: string;
+  /** Printed price, when it is higher than what the shop charges. */
+  mrp?: number;
+  stock?: number;
+  maxPerOrder?: number;
+};
+
+export const createStoreProductMutationFn = async (
+  input: OwnerProductInput,
+): Promise<StoreOwnerProductResponse> => API.post("/store-owner/products", input);
+
+/** The full edit, as against the stock-only PATCH. */
+export const updateStoreProductMutationFn = async ({
+  productId,
+  ...input
+}: Partial<OwnerProductInput> & { productId: string }): Promise<StoreOwnerProductResponse> =>
+  API.put(`/store-owner/products/${productId}`, input);
+
+export const deleteStoreProductMutationFn = async (
+  productId: string,
+): Promise<MessageResponse> => API.delete(`/store-owner/products/${productId}`);
+
 /* Kitchen owner — the counterpart of the shop counter above */
 
 export type RestaurantOwnerOverview = {
@@ -668,6 +711,46 @@ export const setKitchenOpenMutationFn = async (
   isOpen: boolean,
 ): Promise<RestaurantOwnerRestaurantResponse> =>
   API.patch("/restaurant-owner/open", { isOpen });
+
+type RestaurantOwnerDishResponse = { message: string; data: { dish: Dish } };
+
+/**
+ * What a kitchen may set on a dish of its own.
+ *
+ * `isVeg` is required with no default, here as on the server: a wrong answer is
+ * not a cosmetic error in Hindaun, and a field that defaults is a field that
+ * gets defaulted. `isPopular` is withheld — the rails sort by it, and a kitchen
+ * that could flag its whole menu as popular would flatten it into noise.
+ */
+export type OwnerDishInput = {
+  name: string;
+  /** Paise. */
+  price: number;
+  isVeg: boolean;
+  description?: string;
+  imagePreset?: string;
+  /** The kitchen's own heading, in menu order. */
+  section?: string;
+};
+
+export const createKitchenDishMutationFn = async (
+  input: OwnerDishInput,
+): Promise<RestaurantOwnerDishResponse> => API.post("/restaurant-owner/dishes", input);
+
+/**
+ * The full edit, as against the availability-only PUT above. Same endpoint —
+ * the server's dish update is partial, field by field — but a different shape,
+ * so a form that sends six fields and a switch that sends one cannot be
+ * mistaken for each other at the call site.
+ */
+export const updateKitchenDishMutationFn = async ({
+  dishId,
+  ...input
+}: Partial<OwnerDishInput> & { dishId: string }): Promise<RestaurantOwnerDishResponse> =>
+  API.put(`/restaurant-owner/dishes/${dishId}`, input);
+
+export const deleteKitchenDishMutationFn = async (dishId: string): Promise<MessageResponse> =>
+  API.delete(`/restaurant-owner/dishes/${dishId}`);
 
 export const loginMutationFn = async (input: LoginInput): Promise<AuthResponse> =>
   API.post("/auth/login", input);

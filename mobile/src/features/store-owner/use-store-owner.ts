@@ -2,10 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   advanceStoreOrderMutationFn,
+  createStoreProductMutationFn,
+  deleteStoreProductMutationFn,
   getStoreOverviewQueryFn,
   getStoreOwnerOrdersQueryFn,
   getStoreOwnerProductsQueryFn,
   setStoreOpenMutationFn,
+  updateStoreProductMutationFn,
   updateStoreStockMutationFn,
 } from "@/lib/api";
 import { queryKeys } from "@/lib/query-client";
@@ -58,4 +61,7 @@ const useCounterMutation = <TInput, TResult>(
 
 export const useAdvanceStoreOrder = () => useCounterMutation(advanceStoreOrderMutationFn);
 export const useUpdateStoreStock = () => useCounterMutation(updateStoreStockMutationFn);
+export const useCreateStoreProduct = () => useCounterMutation(createStoreProductMutationFn);
+export const useUpdateStoreProduct = () => useCounterMutation(updateStoreProductMutationFn);
+export const useDeleteStoreProduct = () => useCounterMutation(deleteStoreProductMutationFn);
 export const useSetStoreOpen = () => useCounterMutation(setStoreOpenMutationFn);

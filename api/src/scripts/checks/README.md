@@ -38,6 +38,13 @@ caught by reading:
   fetched four result groups and returned two, and the two halves of that
   contract live in different codebases and agree only by hand.
 
+- **Money crossing the boundary.** `money.check.mjs` runs `parseRupees` and
+  `formatPrice` against each other, including the round trip. Neither fails
+  loudly: read "120" as 120 instead of 12000 and a shop sells atta for ₹1.20
+  until a customer notices, `Number("120.5") * 100` is 12050.000000000002, and
+  Hermes ships a trimmed ICU on some Android builds, so Indian digit grouping is
+  done by hand and could silently become the Western one.
+
 - **Paths that do not exist.** `route-coverage.check.mjs` reads the API's route
   table off the real Express routers, reads every `API.get/post/patch/put/delete`
   call out of the two clients' API modules, and compares them. `API.get("/banners")`

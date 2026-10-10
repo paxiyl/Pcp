@@ -2,11 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   advanceKitchenOrderMutationFn,
+  createKitchenDishMutationFn,
+  deleteKitchenDishMutationFn,
   getKitchenDishesQueryFn,
   getKitchenOrdersQueryFn,
   getKitchenOverviewQueryFn,
   setDishAvailableMutationFn,
   setKitchenOpenMutationFn,
+  updateKitchenDishMutationFn,
 } from "@/lib/api";
 import { queryKeys } from "@/lib/query-client";
 
@@ -59,4 +62,7 @@ const useKitchenMutation = <TInput, TResult>(
 
 export const useAdvanceKitchenOrder = () => useKitchenMutation(advanceKitchenOrderMutationFn);
 export const useSetDishAvailable = () => useKitchenMutation(setDishAvailableMutationFn);
+export const useCreateKitchenDish = () => useKitchenMutation(createKitchenDishMutationFn);
+export const useUpdateKitchenDish = () => useKitchenMutation(updateKitchenDishMutationFn);
+export const useDeleteKitchenDish = () => useKitchenMutation(deleteKitchenDishMutationFn);
 export const useSetKitchenOpen = () => useKitchenMutation(setKitchenOpenMutationFn);

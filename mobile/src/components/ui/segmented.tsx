@@ -2,7 +2,12 @@ import { Pressable, Text, View } from "react-native";
 
 type Props<T extends string> = {
   options: readonly T[];
-  value: T;
+  /**
+   * Undefined means nothing is chosen yet, which is not the same as a default.
+   * A dish's veg mark is required and must not arrive because nobody touched
+   * the control, so the form that asks starts with no option selected.
+   */
+  value: T | undefined;
   onChange: (value: T) => void;
   label: string;
 };

@@ -115,6 +115,12 @@ export default function RootLayout() {
                     name="application-status"
                     options={{ animation: "slide_from_right" }}
                   />
+                  {/* Listing a dish or a product: pushed from an owner's tab, so
+                      it covers the tab bar and comes back with the back gesture.
+                      Outside the (kitchen) and (store) groups because those are
+                      tab navigators, where a new file becomes a fourth tab. */}
+                  <Stack.Screen name="dish-new" options={{ animation: "slide_from_right" }} />
+                  <Stack.Screen name="product-new" options={{ animation: "slide_from_right" }} />
                   {/* Tracking rises over the order it belongs to. */}
                   <Stack.Screen name="track/[id]" options={{ animation: "slide_from_bottom" }} />
                   {/* Confirmation is an arrival, not a step you can go back into. */}
