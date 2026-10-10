@@ -192,6 +192,68 @@ Listing `gradlePluginPortal()` explicitly matters: declaring any repository in
 bundle. Neither runs until `eas init` fills in the blank
 `extra.eas.projectId` in `app.json`, which needs an Expo account.
 
+## Updating a running deployment
+
+The API and the app are deployed separately, and most fixes live in the API —
+so a new APK against an old API will still show the old behaviour. Update the
+API first.
+
+### The API
+
+```bash
+cd ~/Pcp
+git pull origin ccr-94280ad2-b9zwbq
+cd api
+npm run build          # typechecks, then bundles to dist/
+```
+
+Then restart it. In Termux, where it runs under `nohup`:
+
+```bash
+pkill -f "node dist/index.js"
+nohup npm start > ~/raket-api.log 2>&1 &
+sleep 3 && tail -5 ~/raket-api.log      # should say the database connected
+```
+
+No `npm install` is needed unless `api/package.json` gained a dependency —
+check `git log -p -- api/package.json` if in doubt. Adding a script does not
+count.
+
+### The backoffice
+
+```bash
+cd ~/Pcp/admin
+npm run build
+npm run preview        # serves dist/ with the SPA fallback
+```
+
+`npm run preview`, not `npx serve dist` — a plain static server returns 404 on
+`/login` and every other client-side route.
+
+### Clearing the seeded demo catalogue
+
+```bash
+cd ~/Pcp/api
+npm run reset:demo
+```
+
+Drops the seeded shops, kitchens, products, dishes, banners, orders and
+baskets. **Keeps** your users (so the admin login still works), the category
+taxonomy (so real products have shelves from day one), and the platform
+settings. Owners are unlinked rather than deleted, because their past orders
+reference the account.
+
+Then optionally:
+
+```bash
+npm run seed:categories     # the category strips, if you cleared them
+npm run seed:restaurants    # six example Hindaun kitchens
+npm run seed:stores         # one example kirana with real stock
+```
+
+Skip the last two to start with an empty catalogue and enter real shops
+through the backoffice.
+
 ## Known gaps
 
 - **Artwork is placeholder.** Every image under `mobile/assets/images`,
