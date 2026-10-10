@@ -95,11 +95,30 @@ export ANDROID_HOME=/opt/android-sdk ANDROID_SDK_ROOT=/opt/android-sdk
 npx expo prebuild --platform android --clean
 cd android
 echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+# R8 needs more heap than the template gives it. See below.
+sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx8192m -XX:MaxMetaspaceSize=1024m/' gradle.properties
+sed -i 's/^reactNativeArchitectures=.*/reactNativeArchitectures=arm64-v8a/' gradle.properties
+
 ./gradlew assembleRelease
 ```
 
 `android/` is generated and git-ignored: prebuild rewrites it from `app.json`,
-so edit the config, never the generated project.
+so edit the config, never the generated project. Which also means the two
+`sed` lines above have to be re-applied after **every** `prebuild --clean` —
+they are in the generated file, not in `app.json`, because
+`expo-build-properties` exposes no option for either.
+
+### `minifyReleaseWithR8` fails with "Java heap space"
+
+The template ships `org.gradle.jvmargs=-Xmx2048m`, which is not enough for R8
+to shrink a release build with this many libraries. It fails ~17 minutes in,
+after everything else has already compiled, so it is an expensive way to find
+out. Raise it to 8 GB as above.
+
+Do **not** set `JAVA_TOOL_OPTIONS=-Xmx...` instead. It applies to every JVM the
+build starts, including R8's worker, so it silently *overrides* whatever
+`org.gradle.jvmargs` says and caps the one process that needs the memory most.
 
 Release is signed with the **debug keystore**, which is the React Native
 template's default. The APK installs and runs, and it is not publishable to
@@ -107,9 +126,10 @@ Play. For a real release, generate a keystore, keep it out of the repository,
 and point `signingConfigs.release` at it — losing it means never being able to
 update the app.
 
-`reactNativeArchitectures` in `android/gradle.properties` is narrowed to
-`armeabi-v7a,arm64-v8a`. Adding the two x86 slices only serves emulators and
-roughly doubles the native build.
+`reactNativeArchitectures` is narrowed to `arm64-v8a`, which is every Android
+phone sold in India for years. Adding `armeabi-v7a` serves genuinely old
+hardware; the two x86 slices serve only emulators and roughly double the
+native build.
 
 ### If Gradle fails on dependency resolution
 
