@@ -44,7 +44,9 @@ export interface PartnerApplicationDocument extends Document {
  */
 const partnerApplicationSchema = new Schema<PartnerApplicationDocument>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    // No `index: true` here. See the two explicit indexes below — a path-level
+    // index would claim the `userId_1` name and make the unique one impossible.
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     requestedRole: { type: String, enum: PARTNER_ROLES, required: true, index: true },
     status: { type: String, enum: APPLICATION_STATUSES, default: "pending", index: true },
     businessName: { type: String, trim: true, maxlength: 80 },
@@ -59,8 +61,26 @@ const partnerApplicationSchema = new Schema<PartnerApplicationDocument>(
   { timestamps: true },
 );
 
-// One open application per person: re-applying while a decision is outstanding
-// would give an admin two records saying the same thing.
+// "My applications, newest first", which is what /auth/me and the status screen
+// ask for. Compound, so the sort comes off the index instead of memory.
+partnerApplicationSchema.index({ userId: 1, createdAt: -1 });
+
+/*
+  One open application per person: re-applying while a decision is outstanding
+  would give an admin two records saying the same thing. Partial, so a decided
+  application never blocks the next one.
+
+  `userId` must NOT also carry `index: true` on its path. Mongoose would emit
+  both definitions, the plain one would take the auto-generated name `userId_1`
+  first, and MongoDB then refuses this one with IndexKeySpecsConflict — same
+  name, different spec. That is not a dropped option but an index that is never
+  created at all, leaving nothing but an application-level findOne that two
+  concurrent requests can both pass. It boots with a warning either way, in a
+  line that scrolls past among the startup logs.
+
+  index-integrity.check.mjs builds these for real and tries to insert the second
+  application, so the next person to add `index: true` to a path finds out here.
+*/
 partnerApplicationSchema.index(
   { userId: 1 },
   { partialFilterExpression: { status: "pending" }, unique: true },

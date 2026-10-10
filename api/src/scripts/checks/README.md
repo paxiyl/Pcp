@@ -77,6 +77,20 @@ caught by reading:
   state, plus the two source invariants that allowed the second break: one
   writer for the session cache, and no route literals in the guard.
 
+- **Indexes that were declared and never created.**
+  `index-integrity.check.mjs` builds every model's indexes against a real
+  MongoDB and compares what the database ended up with against what the schema
+  asked for, option by option. Mongoose deduplicates indexes by key pattern and
+  keeps the first definition, so `userId: { index: true }` on the path plus a
+  `schema.index({ userId: 1 }, { unique: true, partialFilterExpression: … })`
+  below it means the plain index takes the auto-generated `userId_1` name and
+  MongoDB refuses the unique one outright — IndexKeySpecsConflict, logged at
+  boot among the startup lines and then forgotten. That was the rule stopping
+  one account filing two open partner applications; the only thing left holding
+  it was an application-level `findOne` that two concurrent requests both pass.
+  The check also inserts the second application to prove the database refuses
+  it, because an index existing is not the same as the rule being enforced.
+
 - **Bug classes, swept mechanically.** `schema-drift.check.mjs` compares every
   model's TypeScript interface against the paths Mongoose actually registered —
   that is the `isVeg` bug, declared and required and never persisted.
