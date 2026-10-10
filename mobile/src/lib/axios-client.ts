@@ -31,6 +31,14 @@ export class ApiError extends Error {
   }
 }
 
+/*
+  `axios.create` on the default export is axios's own documented API. The
+  import/no-named-as-default-member rule sees a named export of the same name
+  and suggests importing it directly, which would be wrong: the standalone
+  export is not the instance factory the types describe. Suppressed with the
+  reason rather than changed to satisfy a rule that is wrong for this library.
+*/
+// eslint-disable-next-line import/no-named-as-default-member
 export const API: AxiosInstance = axios.create({
   baseURL,
   timeout: 20_000,

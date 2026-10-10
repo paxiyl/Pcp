@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useCSSVariable } from "uniwind";
 
@@ -90,14 +90,23 @@ export default function SearchScreen() {
     "--color-foreground",
   ]);
 
-  // Search is a tab, so it keeps its last term. Arriving from the home field is a
-  // fresh intent: the handoff stamp changes and the term starts over.
-  useEffect(() => {
-    if (handoff) {
-      setTerm(q ?? "");
-      setFilter("all");
-    }
-  }, [handoff, q]);
+  /*
+    Search is a tab, so it keeps its last term. Arriving from the home field is
+    a fresh intent: the handoff stamp changes and the term starts over.
+
+    Adjusted during render against the last stamp seen, rather than in an
+    effect. This is the pattern React documents for resetting state when a prop
+    changes, and it avoids the extra committed render an effect costs — which
+    here meant the previous term flashed on screen for a frame before being
+    replaced by the one just typed on the home screen.
+  */
+  const [lastHandoff, setLastHandoff] = useState(handoff);
+
+  if (handoff !== lastHandoff) {
+    setLastHandoff(handoff);
+    setTerm(q ?? "");
+    setFilter("all");
+  }
 
   useEffect(() => {
     void getRecentSearches().then(setRecent);
@@ -121,7 +130,10 @@ export default function SearchScreen() {
   const { data: basketData } = useBasket();
   const addProduct = useAddBasketProduct();
   const setQuantity = useSetBasketItemQuantity();
-  const items = basketData?.basket?.items ?? [];
+  // Memoised because `change` below lists it as a dependency: a fresh [] on
+  // every render rebuilt that callback every render, and with it every product
+  // card taking it as a prop.
+  const items = useMemo(() => basketData?.basket?.items ?? [], [basketData]);
 
   const change = useCallback(
     async (productId: string, next: number) => {

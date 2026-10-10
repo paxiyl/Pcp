@@ -61,7 +61,10 @@ export default function DishDetailScreen() {
   const { data: basketData } = useBasket();
   const addItem = useAddBasketItem();
   const setQuantity = useSetBasketItemQuantity();
-  const groups = data?.dish.optionGroups ?? [];
+  // Memoised: the price memo below lists it as a dependency, so a fresh []
+  // every render recomputed the whole option total on every keystroke in the
+  // note field.
+  const groups = useMemo(() => data?.dish.optionGroups ?? [], [data]);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [note, setNote] = useState("");
 

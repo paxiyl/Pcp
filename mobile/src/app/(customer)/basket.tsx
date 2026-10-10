@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -53,10 +53,23 @@ export default function BasketScreen() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
 
-  // Keep the draft in step when the basket arrives or changes elsewhere.
-  useEffect(() => {
-    setNote(basket?.orderNote ?? "");
-  }, [basket?.orderNote]);
+  /**
+   * The draft is seeded when the sheet OPENS, not whenever the basket changes.
+   *
+   * It used to sync in an effect on `basket.orderNote`, which had a worse
+   * problem than the extra render the linter complains about: adding an item
+   * invalidates the basket, the refetch lands, and the effect overwrites
+   * whatever you were halfway through typing. Reading the saved note once, at
+   * the moment you open the sheet, is both simpler and the behaviour people
+   * expect.
+   */
+  const toggleNote = () => {
+    setNoteOpen((open) => {
+      if (!open) setNote(basket?.orderNote ?? "");
+
+      return !open;
+    });
+  };
 
   /** Routes back to whichever catalogue page this basket came from. */
   const openVendor = () => {
@@ -361,7 +374,7 @@ export default function BasketScreen() {
           <Pressable
             accessibilityRole="button"
             className="flex-row items-center gap-3 border-t border-border p-4 active:bg-muted"
-            onPress={() => setNoteOpen((open) => !open)}
+            onPress={toggleNote}
           >
             <Ionicons
               color={muted as string}

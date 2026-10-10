@@ -47,7 +47,7 @@ export default function CategoryScreen() {
   const [sortOpen, setSortOpen] = useState(false);
   const [sub, setSub] = useState<string>("all");
 
-  const [foreground, subtle] = useCSSVariable(["--color-foreground", "--color-text-muted"]);
+  const [foreground] = useCSSVariable(["--color-foreground"]);
 
   const everything = slug === "all";
   const categories = useProductCategories();

@@ -59,9 +59,8 @@ export default function ProfileScreen() {
   const [pushChoice, setPushChoice] = useState<PushChoice>("unasked");
   const [primerOpen, setPrimerOpen] = useState(false);
 
-  const [primary, secondary, muted, destructive, border, surface] = useCSSVariable([
+  const [primary, muted, destructive, border, surface] = useCSSVariable([
     "--color-primary",
-    "--color-text-secondary",
     "--color-text-muted",
     "--color-destructive",
     "--color-border",

@@ -2,10 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createAddressMutationFn,
+  getAddressesQueryFn,
   setDefaultAddressMutationFn,
   updateAddressMutationFn,
 } from "@/lib/api";
-import { getAddressesQueryFn } from "@/lib/api";
 import { queryKeys } from "@/lib/query-client";
 
 export const useAddresses = () =>

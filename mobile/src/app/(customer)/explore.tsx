@@ -30,7 +30,7 @@ export default function ExploreScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
 
-  const [foreground, subtle] = useCSSVariable(["--color-foreground", "--color-text-muted"]);
+  const [subtle] = useCSSVariable(["--color-text-muted"]);
 
   const categories = useProductCategories();
   const stores = useStores();

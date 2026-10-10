@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useCSSVariable } from "uniwind";
 
@@ -43,7 +43,7 @@ export function QuantityStepper({
   disabled = false,
   max,
 }: Props) {
-  const [primary, foreground] = useCSSVariable(["--color-primary", "--color-primary-foreground"]);
+  const [foreground] = useCSSVariable(["--color-primary-foreground"]);
   const iconSize = size === "sm" ? 16 : 18;
   const atMax = max !== undefined && quantity >= max;
 
