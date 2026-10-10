@@ -96,23 +96,7 @@ export const useLogin = () => {
 
   return useMutation({
     mutationFn: loginMutationFn,
-    onSuccess: async (response) => {
-      await setAccessToken(response.data.accessToken);
-      queryClient.setQueryData(queryKeys.accessToken, response.data.accessToken);
-      queryClient.setQueryData(queryKeys.currentUser, {
-        data: {
-          defaultAddress: response.data.defaultAddress,
-          hasAddress: response.data.hasAddress,
-          user: response.data.user,
-        },
-      });
-      // Seed the address cache too: the home header renders with no extra request.
-      if (response.data.defaultAddress) {
-        queryClient.setQueryData(queryKeys.addresses, {
-          data: { addresses: [response.data.defaultAddress] },
-        });
-      }
-    },
+    onSuccess: (response) => seedSession(queryClient, response.data),
   });
 };
 
@@ -121,23 +105,7 @@ export const useRegister = () => {
 
   return useMutation({
     mutationFn: registerMutationFn,
-    onSuccess: async (response) => {
-      await setAccessToken(response.data.accessToken);
-      queryClient.setQueryData(queryKeys.accessToken, response.data.accessToken);
-      queryClient.setQueryData(queryKeys.currentUser, {
-        data: {
-          defaultAddress: response.data.defaultAddress,
-          hasAddress: response.data.hasAddress,
-          user: response.data.user,
-        },
-      });
-      // Seed the address cache too: the home header renders with no extra request.
-      if (response.data.defaultAddress) {
-        queryClient.setQueryData(queryKeys.addresses, {
-          data: { addresses: [response.data.defaultAddress] },
-        });
-      }
-    },
+    onSuccess: (response) => seedSession(queryClient, response.data),
   });
 };
 

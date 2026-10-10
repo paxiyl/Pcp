@@ -112,6 +112,25 @@ export default function SignUpScreen() {
             return;
           }
 
+          if (joinAs !== "customer") {
+            /*
+              Asked to join as a shop, kitchen or rider and got an account back
+              with no application attached. The one way that happens is a server
+              older than the field, which strips it and returns a cheerful plain
+              customer — and this screen used to say "Welcome to Raket" and go
+              shopping, which from the outside is indistinguishable from the app
+              having ignored the choice. The account does exist, so say what
+              actually happened and send them to the screen that can file the
+              application by hand.
+            */
+            toast.error("Your account is ready, but the request was not sent", {
+              description: "Send your partner application from here.",
+            });
+            router.replace("/application-status");
+
+            return;
+          }
+
           toast.success(`Welcome to Raket, ${firstName}`);
           router.replace(response.data.hasAddress ? "/home" : "/location");
         },

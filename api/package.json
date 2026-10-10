@@ -17,7 +17,7 @@
     "seed:stores": "tsx ./src/scripts/seed-stores.ts",
     "reset:demo": "tsx ./src/scripts/reset-demo-data.ts",
     "link:owner": "tsx ./src/scripts/link-owner.ts",
-    "check": "tsx ./src/scripts/checks/schema-drift.check.mjs && tsx ./src/scripts/checks/import-cycles.check.mjs && tsx ./src/scripts/checks/register.check.mjs && tsx ./src/scripts/checks/settlement.check.mjs && tsx ./src/scripts/checks/order-hooks.check.mjs && tsx ./src/scripts/checks/seed.check.mjs && tsx ./src/scripts/checks/reset.check.mjs && tsx ./src/scripts/checks/api.check.mjs"
+    "check": "tsx ./src/scripts/checks/mobile-routing.check.mjs && tsx ./src/scripts/checks/schema-drift.check.mjs && tsx ./src/scripts/checks/import-cycles.check.mjs && tsx ./src/scripts/checks/register.check.mjs && tsx ./src/scripts/checks/settlement.check.mjs && tsx ./src/scripts/checks/order-hooks.check.mjs && tsx ./src/scripts/checks/seed.check.mjs && tsx ./src/scripts/checks/reset.check.mjs && tsx ./src/scripts/checks/api.check.mjs"
   },
   "keywords": [],
   "author": "",

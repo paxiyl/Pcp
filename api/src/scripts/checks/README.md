@@ -34,9 +34,22 @@ caught by reading:
   against a throwaway MongoDB, seeds it, and calls every endpoint a client
   uses — through the actual middleware stack. All four roles register, get
   approved by an admin, sign in, and are checked for reaching only their own
-  surfaces. 81 assertions. It exists because of the search bug: the controller
+  surfaces. 99 assertions. It exists because of the search bug: the controller
   fetched four result groups and returned two, and the two halves of that
   contract live in different codebases and agree only by hand.
+
+- **Where the app sends you.** `mobile-routing.check.mjs` is the one check that
+  reads `mobile/` rather than the API, because the decision it covers broke
+  twice and neither break was visible from this side. The server filed a
+  rider's application correctly and said so in the response; the app put them on
+  the customer shopping page anyway — first because the guard and the sign-up
+  screen redirected to two different places, then because the guard read the
+  answer from a cache three hooks wrote by hand, two of which never stored the
+  application at all. Both lived in ternaries inside hooks, so running either
+  meant building an APK and signing up on a phone. The decision is plain
+  functions now and this calls them, every role against every application
+  state, plus the two source invariants that allowed the second break: one
+  writer for the session cache, and no route literals in the guard.
 
 - **Bug classes, swept mechanically.** `schema-drift.check.mjs` compares every
   model's TypeScript interface against the paths Mongoose actually registered —
@@ -62,6 +75,11 @@ run and is deliberately not a dependency of the API:
     npx tsx src/scripts/checks/schema-drift.check.mjs
     npx tsx src/scripts/checks/import-cycles.check.mjs
     npx tsx src/scripts/checks/api.check.mjs
+
+`mobile-routing.check.mjs` is the exception: it needs no database and no
+network, so it runs on its own in well under a second.
+
+    npx tsx src/scripts/checks/mobile-routing.check.mjs
 
 The last one boots a server on a random high port and tears down its own
 process group; the others need nothing running.

@@ -273,6 +273,69 @@ record(
 
 record("a kitchen signup is still a customer", kitchen?.user?.role === "customer", kitchen?.user?.role);
 
+/*
+  All three partner roles, not just the one. Only the kitchen was checked here,
+  and the role that was actually reported broken was the rider — a check that
+  covers one of three is how the other two drift apart unnoticed.
+*/
+const riderApplicant = await expectKeys(
+  "POST /auth/register (rider)",
+  "/auth/register",
+  ["accessToken", "user", "application"],
+  {
+    body: {
+      email: "rider-signup@check.local",
+      joinAs: "driver",
+      name: "Check Rider Signup",
+      password: "password1234",
+      phone: "9876500011",
+      vehicle: "Splendor",
+    },
+    method: "POST",
+    status: 201,
+  },
+);
+
+record(
+  "a rider signup files a pending application",
+  riderApplicant?.application?.status === "pending" && riderApplicant?.application?.requestedRole === "driver",
+  JSON.stringify({ role: riderApplicant?.application?.requestedRole, status: riderApplicant?.application?.status }),
+);
+
+record("a rider signup is still a customer", riderApplicant?.user?.role === "customer", riderApplicant?.user?.role);
+
+const shopApplicant = await expectKeys(
+  "POST /auth/register (shop)",
+  "/auth/register",
+  ["accessToken", "user", "application"],
+  {
+    body: {
+      businessName: "Check General Store",
+      email: "shop-signup@check.local",
+      joinAs: "store_owner",
+      name: "Check Shop Signup",
+      password: "password1234",
+      phone: "9876500022",
+    },
+    method: "POST",
+    status: 201,
+  },
+);
+
+record(
+  "a shop signup files a pending application",
+  shopApplicant?.application?.status === "pending" && shopApplicant?.application?.requestedRole === "store_owner",
+  JSON.stringify({ role: shopApplicant?.application?.requestedRole, status: shopApplicant?.application?.status }),
+);
+
+record("a shop signup is still a customer", shopApplicant?.user?.role === "customer", shopApplicant?.user?.role);
+
+record(
+  "the shop keeps the name it was given",
+  shopApplicant?.application?.businessName === "Check General Store",
+  shopApplicant?.application?.businessName,
+);
+
 /* The duplicate email that used to burn the rate-limit budget. */
 await expectKeys(
   "POST /auth/register (duplicate email refused)",
@@ -310,6 +373,32 @@ record(
   kitchenMe?.application?.status === "pending" &&
     kitchenMe?.application?.requestedRole === "restaurant_owner",
   JSON.stringify(kitchenMe?.application ?? null),
+);
+
+const riderMe = await expectKeys(
+  "GET /auth/me reports a rider's pending application",
+  "/auth/me",
+  ["user", "application"],
+  { token: riderApplicant?.accessToken },
+);
+
+record(
+  "the rider applicant's /auth/me carries a pending application",
+  riderMe?.application?.status === "pending" && riderMe?.application?.requestedRole === "driver",
+  JSON.stringify(riderMe?.application ?? null),
+);
+
+const shopMe = await expectKeys(
+  "GET /auth/me reports a shop's pending application",
+  "/auth/me",
+  ["user", "application"],
+  { token: shopApplicant?.accessToken },
+);
+
+record(
+  "the shop applicant's /auth/me carries a pending application",
+  shopMe?.application?.status === "pending" && shopMe?.application?.requestedRole === "store_owner",
+  JSON.stringify(shopMe?.application ?? null),
 );
 
 const shopperMe = await expectKeys(
