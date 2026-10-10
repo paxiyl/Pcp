@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { HTTPSTATUS } from "../config/http-status.config";
 import { asyncHandler } from "../middlewares/asyncHandler.middleware";
-import { PAYMENT_METHODS } from "../models/order.model";
+import { PAYMENT_METHODS } from "../models/payment-method";
 import { UserDocument } from "../models/user.model";
 import {
   getPaymentPreferences,

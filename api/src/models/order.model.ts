@@ -2,14 +2,15 @@ import { Document, model, Schema, Types } from "mongoose";
 
 import { notifyOrderStatus } from "../services/notification.service";
 import { VendorKind } from "./basket.model";
+import { PAYMENT_METHODS, PaymentMethod } from "./payment-method";
 
 /**
  * UPI first: it is how most of Hindaun will actually pay. `cod` is listed as a
  * method because that is how the customer experiences it, even though no
  * gateway is involved.
  */
-export const PAYMENT_METHODS = ["upi", "card", "netbanking", "wallet", "cod"] as const;
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+// Re-exported so the many call sites that import it from here keep working.
+export { PAYMENT_METHODS, type PaymentMethod } from "./payment-method";
 
 /** "cod" is a provider in the sense that it owns the settlement path: the rider. */
 export const PAYMENT_PROVIDERS = ["razorpay", "stripe", "cod"] as const;

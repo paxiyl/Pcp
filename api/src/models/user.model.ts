@@ -1,6 +1,6 @@
 import { Document, model, Schema, Types } from "mongoose";
 
-import { PAYMENT_METHODS, PaymentMethod } from "./order.model";
+import { PAYMENT_METHODS, PaymentMethod } from "./payment-method";
 import { compareValue, hashValue } from "../utils/bcrypt";
 
 /**

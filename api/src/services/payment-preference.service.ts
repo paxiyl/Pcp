@@ -1,4 +1,4 @@
-import { PAYMENT_METHODS, PaymentMethod } from "../models/order.model";
+import { PAYMENT_METHODS, PaymentMethod } from "../models/payment-method";
 import { UserModel } from "../models/user.model";
 import { NotFoundException } from "../utils/app-error";
 import { codAvailability } from "./payment.service";
