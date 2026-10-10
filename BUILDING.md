@@ -204,8 +204,25 @@ API first.
 cd ~/Pcp
 git pull origin ccr-94280ad2-b9zwbq
 cd api
-npm run build          # typechecks, then bundles to dist/
+npm install            # dist/ is built here, and that needs the devDependencies
+npm run bundle         # tsup only — see the note below
 ```
+
+**`dist/` is git-ignored, so it never arrives from a pull.** `npm start` runs
+`node dist/index.js`, so skipping the build step gives
+
+```
+Error: Cannot find module '.../api/dist/index.js'
+```
+
+and the app then reports "Can't reach Raket", because the API connects to
+MongoDB before it starts listening — a process that never started looks exactly
+like a server that is down.
+
+Use `npm run bundle` rather than `npm run build` on a phone. `build` runs
+`tsc --noEmit` first, which is the slow and memory-hungry half and can be
+killed by Android before it finishes; `bundle` just emits. Run the typecheck on
+a real machine, where `npm run build` is the right command.
 
 Then restart it. In Termux, where it runs under `nohup`:
 
