@@ -87,6 +87,31 @@ yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses
 The NDK and CMake are pulled in automatically by the Gradle build once the
 licences are accepted, so they are not listed above.
 
+### Checking everything still works
+
+```bash
+cd api
+npm install --no-save mongodb-memory-server   # once; downloads a MongoDB binary
+npm run check
+```
+
+Eight suites against a throwaway database, about three minutes. They are not a
+unit-test suite — there is no runner and no coverage goal. They cover the two
+things reading the code cannot catch:
+
+- **Arithmetic and flows that move money or grant access.** Registration as
+  each role, admin approval granting it, the cash ledger, order status hooks.
+- **Bug classes that typecheck perfectly.** A field declared on a model
+  interface but missing from the Mongoose schema (silently dropped on every
+  write). A value-import cycle (crashes depending on which module loads
+  first). A filter operator not marked `mongoose.trusted` (matches nothing,
+  reports success). `api.check.mjs` boots the real server and calls every
+  endpoint, because the API's response shape and the clients' types live in
+  different codebases and agree only by hand.
+
+Run it before a release, and after touching a model, a controller's response
+shape, or anything under `src/scripts/`.
+
 ### Building the APK
 
 ```bash
