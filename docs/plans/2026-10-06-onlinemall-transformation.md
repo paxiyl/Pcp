@@ -583,24 +583,170 @@ things worth recording:
   refunds do NOT restore stock, because a partial refund does not say which line
   it was for.
 
+## Phase 6 — Making the features real ✅ complete
+
+Six things the app claimed to do and did not. Each turned out to be a different
+kind of gap, which is worth recording because the pattern repeats.
+
+### Search was returning half its results
+
+`/search` fetched products, stores, restaurants and dishes, then returned only
+restaurants and dishes. Every grocery search came back empty however much stock
+was listed, and the app then threw the dishes away too — so a search for a dish
+by name found nothing unless a kitchen happened to be called that.
+
+A broken endpoint and a convincing empty state are hard to tell apart from the
+outside, which is the lesson: the empty state looked *correct*, so nobody
+suspected the query.
+
+### An empty search is the most valuable data a new marketplace has
+
+The old copy said "check the spelling", which blames the customer for a gap in
+our catalogue. In a city this size the honest answer is that nobody lists it
+yet.
+
+So the apology became a feature. Every search that finds nothing is counted;
+tapping "Tell us you want it" counts for more, because a deliberate ask is
+stronger evidence than a search that may have been a typo. `/demand` in the
+backoffice ranks what Hindaun keeps asking for that nobody sells.
+
+Recording never costs a customer their search: the passive miss is
+fire-and-forget and swallows its own errors. The deliberate ask is awaited,
+because telling someone they were heard when they were not is worse than
+failing.
+
+### Maps: the embedded map was the wrong answer to the right question
+
+`react-native-maps` with `PROVIDER_GOOGLE` and no Maps SDK key renders a grey
+rectangle. Getting a key means enabling billing on the Maps SDK — and the
+embedded map was the wrong shape for the job regardless. A rider on a bike
+wants full-screen turn-by-turn with voice and traffic.
+
+So the route is a card (pickup, rider, drop-off, remaining distance) and
+navigation is handed to the phone's Maps app over `google.navigation:` or a
+directions URL. No key, no billing, and strictly better than what it replaced:
+the old map showed nothing at all for an order with no stored coordinates,
+where the card still names both ends. Dropping the dependency also removes the
+Google Maps native libraries from the APK.
+
+The rider's delivery screen had no navigation at all; both stops now carry a
+Navigate button, preferring the stored coordinate over the written address,
+because a Hindaun address typed by a customer often fails to geocode while a
+dropped pin always resolves. Which made the pin worth fixing: the address form
+showed a decorative map PNG and only kept coordinates when onboarding happened
+to pass them in, so an address added later had none. It captures a real GPS pin
+now.
+
+### Settlement: where cash on delivery becomes money
+
+Cash on delivery had no accounting behind it. A rider collected ₹500 at a door
+and that was the end of the record.
+
+Two ledgers, running in opposite directions. **Riders** owe us the cash they
+collected less what they earned; a rider on prepaid work only is owed their
+earnings instead, so the balance is signed. **Shops** are owed the value of
+goods sold less commission, whichever way the customer paid — whoever held the
+money in between does not change the shop's share.
+
+Three decisions:
+
+- **A settlement stores order ids, not a date range.** A range re-run tomorrow
+  would silently include orders that arrived in between, and a settlement has
+  to mean the same thing forever.
+- **Cash counted is cash actually collected** (`codCollectedAt` stamped), not
+  the total of anything merely marked COD. Billing a rider for money they never
+  held is the worst bug this feature could have.
+- **Settle is check-and-set.** The admin sends back the figure they had on
+  screen and the server refuses if it moved, so a delivery landing mid-page
+  cannot cause a payout nobody agreed to.
+
+No edit path: a wrong run is corrected by another run. The stamp is conditional
+on the leg being unset, so concurrent admins cannot both claim an order, and
+the losing run is trued up rather than left overstating itself. No transaction
+— this deployment cannot assume a replica set.
+
+The rider sees their own side above the job list, not behind a menu: someone
+carrying somebody else's money should meet that number every time they open the
+app.
+
+### Image presets: a shopkeeper will not photograph forty products
+
+The grid rendered each unphotographed product as an empty grey square, which
+reads as broken rather than as "no photo yet".
+
+The second route is a tile the owner picks — a glyph on a colour ramp,
+generated rather than hosted. That is the point: image hosting is optional here
+and currently unconfigured, stock food photography is a licensing problem, and
+a picture of someone else's pizza is a small lie. A tinted glyph is honestly
+"we have no photo of this" while still looking chosen.
+
+The catalogue of tiles lives in the API and is served, so adding one reaches
+the backoffice picker and the app without rebuilding either. The payload
+carries an emoji and two colours — an emoji because it draws identically in
+React Native and in the browser, with no icon library to keep in step across
+three codebases.
+
+Turned up on the way: the product form's only image control was a bare "Image
+URL" text box, which a shopkeeper on a phone cannot fill; and `products` was
+missing from the upload folder whitelist, so a product photo upload would have
+been refused even once hosting is configured.
+
+### Payment methods: a setting that did nothing
+
+Settings opened an `Alert.alert` saying you choose at checkout — true, and
+useless, because checkout then opened on UPI regardless. Every order needed the
+same correction.
+
+The saved method is now the one checkout starts on. A cash default is dropped
+for a basket over the cash ceiling, because the picker would otherwise open
+with nothing selected. The ceiling is stated on the page rather than discovered
+at checkout.
+
+No instrument is stored — not a card, not a UPI handle. Holding one means
+holding something worth stealing, and the gateway already does that properly.
+
+### Two bugs found while in the files
+
+- **The ETA read `Date.now()` in the render body.** With `reactCompiler` on that
+  can be memoised, freezing the countdown at whatever it said when the screen
+  opened. It reads a ticking `useNow()` now.
+- **Dragging the mode switch out and back stranded the thumb mid-track**:
+  `setMode` returned early when the mode had not changed, so nothing animated it
+  home.
+
+### Carried forward
+
+- `basket.tsx` and `search.tsx` still set state synchronously inside an effect.
+  Both are "sync a draft from server state", both cost an extra render and
+  nothing else, and both were left alone rather than churned immediately before
+  an APK build.
+- Google sign-in in the mobile app is still unbuilt: `google-services.json` for
+  this project carries an empty `oauth_client` array, so there is no client id
+  to sign in against until one is created in the Firebase console.
+
 ### Still open — and what only you can do
 
 Everything left needs your machine, a device, or a decision:
 
-1. **Install three native modules.** `expo-haptics`, `expo-notifications`,
-   `react-native-razorpay`. All three sit behind working seams with the real
-   implementation in a comment. Until Razorpay is in, online payment does not work
-   on a device; COD does.
-2. **Run `eas init`** — the project id was blanked rather than guessed, because it
-   pointed at the original author's account.
-3. **Seed and pilot**: `npm run seed:stores`, create one real shop and one owner,
+1. **Install `react-native-razorpay`.** Haptics and notifications are in — push
+   runs on FCM directly, which is why no EAS project id is needed for it. Until
+   Razorpay is installed, online payment does not work on a device; COD does.
+2. **A release keystore.** Builds so far are signed with the Android debug key,
+   which installs fine for testing and is rejected by Play. Create it once,
+   back it up in two places, and never lose it: a lost upload key means never
+   updating the app again.
+3. **An OAuth client in Firebase**, if Google sign-in is wanted in the app.
+4. **Point the app at the real API.** `EXPO_PUBLIC_API_URL` is unset, so builds
+   fall back to `http://localhost:8000/api/v1` — correct only while the API runs
+   on the same phone. Set it to the VPS, then remove `usesCleartextTraffic` from
+   `app.json`, which exists solely for that localhost.
+5. **Seed and pilot**: `npm run seed:stores`, create one real shop and one owner,
    then walk an order end to end. That will surface what review cannot.
-4. **App icon and splash artwork** still ship the old teal mark.
-5. **The licence.** `TECHWITHEMMA-LICENSE.md` requires a paid licence for
+6. **The licence.** `TECHWITHEMMA-LICENSE.md` requires a paid licence for
    commercial use.
-6. **Pharmacy licensing** before any prescription medicine goes live, plus the
+7. **Pharmacy licensing** before any prescription medicine goes live, plus the
    Legal Metrology declarations on every listing.
-7. **Promo codes**, if you want them.
+8. **Promo codes**, if you want them.
 
 ## checklist.design audit
 
