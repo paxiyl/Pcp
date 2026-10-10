@@ -84,6 +84,17 @@ const dishSchema = new Schema<DishDocument>(
     allergens: { type: [String], default: [] },
     optionGroups: { type: [dishOptionGroupSchema], default: [] },
     section: { type: String, default: "Popular", trim: true, maxlength: 40 },
+    /**
+     * Declared on the interface and in the Zod schema but MISSING from this
+     * one, so Mongoose silently dropped it on every write: the admin form
+     * insisted on a Veg/Non-veg choice and then threw it away, which left the
+     * veg-only filter and the green/brown mark reading undefined for every
+     * dish in the catalogue.
+     *
+     * No default, deliberately. A wrong veg mark is the one mistake here a
+     * customer cannot recover from, so the write has to say.
+     */
+    isVeg: { type: Boolean, required: true },
     isPopular: { type: Boolean, default: false },
     isAvailable: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },

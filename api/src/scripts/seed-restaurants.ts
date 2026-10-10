@@ -34,16 +34,30 @@ type SeedDish = {
   description: string;
   price: number;
   section: string;
+  /** Required, with no default: a wrong veg mark is not recoverable. */
+  isVeg: boolean;
   isPopular?: boolean;
   calories?: number;
   allergens?: string[];
   optionGroups?: SeedOptionGroup[];
   /** File in api/assets, uploaded alongside the restaurant cover. */
   file?: string;
+  /**
+   * A preset tile key, used instead of a photograph.
+   *
+   * The seed used to point at image files in api/assets that are not in the
+   * repository, so every seeded dish came out with no picture whenever image
+   * hosting was unconfigured — which it is by default. A preset needs no
+   * hosting and no licence, and is honestly "no photo yet" rather than a
+   * broken grey square.
+   */
+  imagePreset?: string;
 };
 
 type SeedRestaurant = {
   name: string;
+  /** Shown as a badge, and what the veg-only filter reads on a kitchen. */
+  isPureVeg?: boolean;
   slug: string;
   description: string;
   file?: string;
@@ -66,218 +80,355 @@ type SeedRestaurant = {
 
 const restaurants: SeedRestaurant[] = [
   {
-    address: "3 Hoe Street, London E17",
-    location: { lat: 51.5836, lng: -0.0197 },
-    categorySlugs: ["pizza", "offers"],
-    closesAt: "22:30",
-    cuisines: ["Italian", "Pizza", "Pasta"],
-    deliveryFee: 490,
-    description: "Wood-fired pizza and fresh pasta, made to order by the Rossi family.",
+    address: "Bazaar Road, near the bus stand, Hindaun City",
+    categorySlugs: ["tandoori", "north-indian", "offers"],
+    closesAt: "23:00",
+    cuisines: ["North Indian", "Tandoori"],
+    deliveryFee: 2000,
+    description: "Tandoori roti, butter chicken and dal makhani from the clay oven.",
     dishes: [
       {
-        description: "Slow-cooked pancetta, egg yolk and pecorino",
-        file: "spaghetti.png",
+        description: "Boneless chicken in a tomato and butter gravy",
+        imagePreset: "thali",
         isPopular: true,
-        name: "Spaghetti Carbonara",
-        price: 649,
-        section: "Popular",
-      },
-      {
-        allergens: ["Milk", "Gluten"],
-        calories: 680,
-        description:
-          "San Marzano tomato sauce, fior di latte mozzarella, fresh basil and extra virgin olive oil.",
-        isPopular: true,
-        name: "Classic Margherita",
+        isVeg: false,
+        name: "Butter Chicken",
         optionGroups: [
           {
-            name: "Choose size",
+            name: "Portion",
             options: [
-              { isDefault: true, name: 'Regular (10")', priceDelta: 0 },
-              { name: 'Large (12")', priceDelta: 120 },
-              { name: 'Extra Large (14")', priceDelta: 220 },
+              { isDefault: true, name: "Half", priceDelta: 0 },
+              { name: "Full", priceDelta: 11000 },
             ],
             required: true,
             type: "single",
           },
-          {
-            name: "Add extras",
-            options: [
-              { name: "Extra Mozzarella", priceDelta: 100 },
-              { name: "Rocket", priceDelta: 80 },
-              { name: "Cherry Tomatoes", priceDelta: 80 },
-            ],
-            required: false,
-            type: "multiple",
-          },
-          {
-            name: "Remove",
-            options: [{ name: "No Cheese" }, { name: "No Basil" }],
-            required: false,
-            type: "multiple",
-          },
         ],
-        price: 429,
-        section: "Popular",
+        price: 22000,
+        section: "Main course",
       },
       {
-        description: "Chilli, garlic and tomato with a slow simmer",
-        name: "Penne Arrabbiata",
-        price: 549,
-        section: "Mains",
+        description: "Black lentils slow-cooked overnight",
+        imagePreset: "thali",
+        isPopular: true,
+        isVeg: true,
+        name: "Dal Makhani",
+        price: 16000,
+        section: "Main course",
       },
-      { description: "With garlic butter", name: "Garlic Bread", price: 349, section: "Sides" },
-      { description: "330ml", name: "Coca-Cola", price: 150, section: "Drinks" },
+      {
+        description: "Cottage cheese marinated in yoghurt and spices",
+        imagePreset: "tandoori",
+        isVeg: true,
+        name: "Paneer Tikka",
+        price: 20000,
+        section: "Starters",
+      },
+      {
+        description: "Straight from the tandoor, brushed with butter",
+        imagePreset: "paratha",
+        isVeg: true,
+        name: "Tandoori Roti",
+        price: 1500,
+        section: "Breads",
+      },
     ],
-    file: "spaghetti.png",
-    minOrder: 800,
-    name: "Bella Italia",
-    prepTimeMaxMinutes: 35,
+    freeDeliveryThreshold: 30000,
+    location: { lat: 26.7324, lng: 77.0352 },
+    minOrder: 10000,
+    name: "Hindaun Tandoori",
+    prepTimeMaxMinutes: 40,
     prepTimeMinMinutes: 25,
-    rating: 4.6,
-    ratingCount: 812,
-    slug: "bella-italia",
+    rating: 4.4,
+    ratingCount: 186,
+    slug: "hindaun-tandoori",
     sortOrder: 1,
   },
   {
-    address: "18 Blackhorse Lane, London E17",
-    location: { lat: 51.5871, lng: -0.041 },
-    categorySlugs: ["burgers", "offers"],
-    closesAt: "23:00",
-    cuisines: ["Burgers", "American"],
-    deliveryFee: 490,
-    description: "Smashed patties, brioche buns and proper chips.",
+    address: "Station Road, opposite the petrol pump, Hindaun City",
+    categorySlugs: ["thali", "north-indian"],
+    closesAt: "22:00",
+    cuisines: ["Thali", "North Indian"],
+    deliveryFee: 1500,
+    description: "Pure veg bhojnalaya. Unlimited roti with every thali.",
     dishes: [
       {
-        allergens: ["Milk", "Gluten", "Sesame"],
-        calories: 940,
-        description: "Double patty, cheddar, pickles and house sauce in a brioche bun.",
-        file: "stacked-cheeseburger.png",
+        description: "Two sabzi, dal, rice, four roti, salad and papad",
+        imagePreset: "thali",
         isPopular: true,
-        name: "Double Cheeseburger",
+        isVeg: true,
+        name: "Special Thali",
+        price: 12000,
+        section: "Thali",
+      },
+      {
+        description: "Dal, rice, three roti and one sabzi",
+        imagePreset: "thali",
+        isVeg: true,
+        name: "Simple Thali",
+        price: 8000,
+        section: "Thali",
+      },
+      {
+        description: "Potato and cauliflower, dry masala",
+        imagePreset: "thali",
+        isVeg: true,
+        name: "Aloo Gobhi",
+        price: 9000,
+        section: "Sabzi",
+      },
+      {
+        description: "Set curd, served cold",
+        imagePreset: "dairy",
+        isVeg: true,
+        name: "Dahi",
+        price: 3000,
+        section: "Sides",
+      },
+    ],
+    isPureVeg: true,
+    location: { lat: 26.7291, lng: 77.0318 },
+    minOrder: 8000,
+    name: "Shri Ganesh Bhojnalaya",
+    prepTimeMaxMinutes: 30,
+    prepTimeMinMinutes: 20,
+    rating: 4.6,
+    ratingCount: 342,
+    slug: "shri-ganesh-bhojnalaya",
+    sortOrder: 2,
+  },
+  {
+    address: "Karauli Road, Hindaun City",
+    categorySlugs: ["biryani", "offers"],
+    closesAt: "23:30",
+    cuisines: ["Biryani", "Mughlai"],
+    deliveryFee: 2500,
+    description: "Dum biryani cooked in sealed handis, counted by the plate.",
+    dishes: [
+      {
+        description: "Long-grain rice layered with marinated chicken",
+        imagePreset: "biryani",
+        isPopular: true,
+        isVeg: false,
+        name: "Chicken Dum Biryani",
         optionGroups: [
           {
-            name: "Choose your side",
+            name: "Plate",
             options: [
-              { isDefault: true, name: "Skin-on fries", priceDelta: 0 },
-              { name: "Sweet potato fries", priceDelta: 150 },
-              { name: "House salad", priceDelta: 100 },
+              { isDefault: true, name: "Single", priceDelta: 0 },
+              { name: "Family (serves 3)", priceDelta: 32000 },
+            ],
+            required: true,
+            type: "single",
+          },
+        ],
+        price: 18000,
+        section: "Biryani",
+      },
+      {
+        description: "Seasonal vegetables and paneer, same dum method",
+        imagePreset: "biryani",
+        isVeg: true,
+        name: "Veg Dum Biryani",
+        price: 14000,
+        section: "Biryani",
+      },
+      {
+        description: "Whipped curd with onion, cucumber and roasted cumin",
+        imagePreset: "dairy",
+        isVeg: true,
+        name: "Raita",
+        price: 4000,
+        section: "Sides",
+      },
+    ],
+    freeDeliveryThreshold: 40000,
+    location: { lat: 26.7357, lng: 77.0401 },
+    minOrder: 12000,
+    name: "Biryani House Hindaun",
+    prepTimeMaxMinutes: 45,
+    prepTimeMinMinutes: 30,
+    rating: 4.3,
+    ratingCount: 211,
+    slug: "biryani-house-hindaun",
+    sortOrder: 3,
+  },
+  {
+    address: "Main Market, near the clock tower, Hindaun City",
+    categorySlugs: ["chinese", "momos", "noodles"],
+    closesAt: "22:30",
+    cuisines: ["Chinese", "Street food"],
+    deliveryFee: 1500,
+    description: "Chowmein off the tawa and steamed momos with red chutney.",
+    dishes: [
+      {
+        description: "Hakka noodles tossed with cabbage, carrot and capsicum",
+        imagePreset: "noodles",
+        isPopular: true,
+        isVeg: true,
+        name: "Veg Chowmein",
+        optionGroups: [
+          {
+            name: "Make it",
+            options: [
+              { isDefault: true, name: "Normal", priceDelta: 0 },
+              { name: "Extra spicy", priceDelta: 0 },
+              { name: "Schezwan", priceDelta: 2000 },
+            ],
+            required: false,
+            type: "single",
+          },
+        ],
+        price: 7000,
+        section: "Noodles",
+      },
+      {
+        description: "Eight pieces, steamed, with red chutney",
+        imagePreset: "momos",
+        isPopular: true,
+        isVeg: true,
+        name: "Veg Momos",
+        price: 6000,
+        section: "Momos",
+      },
+      {
+        description: "Paneer tossed in a sweet and sharp chilli sauce",
+        imagePreset: "chinese",
+        isVeg: true,
+        name: "Chilli Paneer",
+        price: 13000,
+        section: "Starters",
+      },
+    ],
+    location: { lat: 26.7310, lng: 77.0339 },
+    minOrder: 6000,
+    name: "Chowmein Corner",
+    prepTimeMaxMinutes: 25,
+    prepTimeMinMinutes: 15,
+    rating: 4.2,
+    ratingCount: 158,
+    slug: "chowmein-corner",
+    sortOrder: 4,
+  },
+  {
+    address: "Gandhi Chowk, Hindaun City",
+    categorySlugs: ["pizza", "burgers", "sandwich"],
+    closesAt: "23:00",
+    cuisines: ["Pizza", "Fast food"],
+    deliveryFee: 2000,
+    description: "Hand-stretched pizza, burgers and grilled sandwiches.",
+    dishes: [
+      {
+        description: "Mozzarella and tomato, nothing else",
+        imagePreset: "pizza",
+        isPopular: true,
+        isVeg: true,
+        name: "Margherita Pizza",
+        optionGroups: [
+          {
+            name: "Size",
+            options: [
+              { isDefault: true, name: "Regular (7 inch)", priceDelta: 0 },
+              { name: "Medium (10 inch)", priceDelta: 9000 },
+              { name: "Large (12 inch)", priceDelta: 17000 },
             ],
             required: true,
             type: "single",
           },
           {
-            name: "Add extras",
+            name: "Add toppings",
             options: [
-              { name: "Extra patty", priceDelta: 250 },
-              { name: "Bacon", priceDelta: 150 },
-              { name: "Jalapeños", priceDelta: 70 },
+              { name: "Extra cheese", priceDelta: 4000 },
+              { name: "Paneer", priceDelta: 5000 },
+              { name: "Olives", priceDelta: 3000 },
             ],
             required: false,
             type: "multiple",
           },
-          {
-            name: "Remove",
-            options: [{ name: "No pickles" }, { name: "No sauce" }],
-            required: false,
-            type: "multiple",
-          },
         ],
-        price: 899,
-        section: "Popular",
+        price: 14000,
+        section: "Pizza",
       },
       {
-        description: "Buttermilk chicken, slaw, chipotle mayo",
-        isPopular: true,
-        name: "Crispy Chicken Burger",
-        price: 799,
-        section: "Popular",
+        description: "Paneer tikka, onion and capsicum",
+        imagePreset: "pizza",
+        isVeg: true,
+        name: "Paneer Tikka Pizza",
+        price: 19000,
+        section: "Pizza",
       },
-      { description: "Skin-on, rosemary salt", name: "Loaded Fries", price: 399, section: "Sides" },
-      { description: "Vanilla or chocolate", name: "Milkshake", price: 449, section: "Drinks" },
+      {
+        description: "Crumb-fried patty, lettuce and mint mayo",
+        imagePreset: "burger",
+        isVeg: true,
+        name: "Veg Burger",
+        price: 6000,
+        section: "Burgers",
+      },
     ],
-    file: "stacked-cheeseburger.png",
-    minOrder: 1000,
-    name: "Grill House",
-    prepTimeMaxMinutes: 30,
-    prepTimeMinMinutes: 20,
-    rating: 4.7,
-    ratingCount: 642,
-    slug: "grill-house",
-    sortOrder: 2,
-  },
-  {
-    address: "44 Orford Road, London E17",
-    location: { lat: 51.5862, lng: -0.0139 },
-    categorySlugs: ["sushi"],
-    closesAt: "21:30",
-    cuisines: ["Sushi", "Japanese"],
-    deliveryFee: 490,
-    description: "Hand-rolled sushi prepared fresh through the day.",
-    dishes: [
-      {
-        description: "Eight pieces, salmon and avocado",
-        file: "sushi-rolls.png",
-        isPopular: true,
-        name: "Salmon Avocado Roll",
-        price: 799,
-        section: "Popular",
-      },
-      {
-        description: "Twelve pieces, chef's selection",
-        isPopular: true,
-        name: "Mixed Nigiri Platter",
-        price: 1299,
-        section: "Mains",
-      },
-      { description: "Steamed, sea salt", name: "Edamame", price: 349, section: "Sides" },
-      { description: "Cold, 500ml", name: "Green Tea", price: 250, section: "Drinks" },
-    ],
-    file: "sushi-rolls.png",
-    minOrder: 1200,
-    name: "Sushi Daily",
-    prepTimeMaxMinutes: 30,
-    prepTimeMinMinutes: 20,
-    rating: 4.6,
-    ratingCount: 318,
-    slug: "sushi-daily",
-    sortOrder: 3,
-  },
-  {
-    address: "7 Wood Street, London E17",
-    location: { lat: 51.5878, lng: -0.006 },
-    categorySlugs: ["healthy"],
-    closesAt: "20:00",
-    cuisines: ["Healthy", "Bowls"],
-    deliveryFee: 490,
-    description: "Bright poké bowls built on sushi rice or greens.",
-    dishes: [
-      {
-        description: "Ahi tuna, edamame, mango, sesame dressing",
-        file: "colorful-poké.png",
-        isPopular: true,
-        name: "Rainbow Poké Bowl",
-        price: 1049,
-        section: "Popular",
-      },
-      {
-        description: "Marinated tofu, pickled ginger, crispy onions",
-        name: "Teriyaki Tofu Bowl",
-        price: 899,
-        section: "Mains",
-      },
-      { description: "Cucumber, sesame, chilli", name: "Sunomono Salad", price: 399, section: "Sides" },
-      { description: "Pressed, 330ml", name: "Cold Brew", price: 320, section: "Drinks" },
-    ],
-    file: "colorful-poké.png",
-    minOrder: 900,
-    name: "Poké Fresh",
+    location: { lat: 26.7336, lng: 77.0367 },
+    minOrder: 10000,
+    name: "Pizza Point Hindaun",
     prepTimeMaxMinutes: 35,
-    prepTimeMinMinutes: 25,
-    rating: 4.7,
-    ratingCount: 209,
-    slug: "poke-fresh",
-    sortOrder: 4,
+    prepTimeMinMinutes: 20,
+    rating: 4.1,
+    ratingCount: 97,
+    slug: "pizza-point-hindaun",
+    sortOrder: 5,
+  },
+  {
+    address: "Sabzi Mandi Road, Hindaun City",
+    categorySlugs: ["sweets", "snacks", "offers"],
+    closesAt: "21:30",
+    cuisines: ["Sweets", "Snacks"],
+    deliveryFee: 1500,
+    description: "Mithai made fresh each morning, and samosas fried to order.",
+    dishes: [
+      {
+        description: "Two pieces, potato and pea filling, with chutney",
+        imagePreset: "samosa",
+        isPopular: true,
+        isVeg: true,
+        name: "Samosa",
+        price: 3000,
+        section: "Namkeen",
+      },
+      {
+        description: "Spiced moong dal filling, served with aloo sabzi",
+        imagePreset: "samosa",
+        isVeg: true,
+        name: "Kachori",
+        price: 3000,
+        section: "Namkeen",
+      },
+      {
+        description: "Half kilo, soaked in cardamom syrup",
+        imagePreset: "mithai",
+        isPopular: true,
+        isVeg: true,
+        name: "Gulab Jamun",
+        price: 16000,
+        section: "Mithai",
+      },
+      {
+        description: "Half kilo, fried fresh and still warm",
+        imagePreset: "mithai",
+        isVeg: true,
+        name: "Jalebi",
+        price: 12000,
+        section: "Mithai",
+      },
+    ],
+    isPureVeg: true,
+    location: { lat: 26.7302, lng: 77.0328 },
+    minOrder: 5000,
+    name: "Sharma Sweets & Namkeen",
+    prepTimeMaxMinutes: 25,
+    prepTimeMinMinutes: 15,
+    rating: 4.5,
+    ratingCount: 404,
+    slug: "sharma-sweets-namkeen",
+    sortOrder: 6,
   },
 ];
 
@@ -292,6 +443,35 @@ const seed = async () => {
 
   // Upload each asset once, even when several records share it.
   const uploads = new Map<string, { url: string; publicId: string }>();
+
+  /**
+   * Kitchens filed under no category never appear in the app's category strip,
+   * and the old `.filter(Boolean)` swallowed that silently — so running
+   * `seed:restaurants` without `seed:categories` first produced six kitchens
+   * that looked seeded and were unreachable by browsing.
+   */
+  const resolveCategories = (seedRestaurant: SeedRestaurant) => {
+    const resolved = seedRestaurant.categorySlugs
+      .map((slug) => ({ id: categoryIdBySlug.get(slug), slug }))
+      .filter((entry) => {
+        if (!entry.id) {
+          logger.warn("Category not found — run seed:categories first", {
+            restaurant: seedRestaurant.slug,
+            slug: entry.slug,
+          });
+        }
+
+        return Boolean(entry.id);
+      });
+
+    if (resolved.length === 0) {
+      logger.warn("Kitchen filed under NO category; it will not appear in the strip", {
+        restaurant: seedRestaurant.slug,
+      });
+    }
+
+    return resolved.map((entry) => entry.id);
+  };
 
   const uploadOnce = async (file: string) => {
     if (!uploadsEnabled) return undefined;
@@ -325,15 +505,14 @@ const seed = async () => {
             coordinates: [seedRestaurant.location.lng, seedRestaurant.location.lat],
             type: "Point",
           },
-          categories: seedRestaurant.categorySlugs
-            .map((slug) => categoryIdBySlug.get(slug))
-            .filter(Boolean),
+          categories: resolveCategories(seedRestaurant),
           closesAt: seedRestaurant.closesAt,
           cuisines: seedRestaurant.cuisines,
           deliveryFee: seedRestaurant.deliveryFee,
           description: seedRestaurant.description,
           isActive: true,
           isOpen: true,
+          isPureVeg: seedRestaurant.isPureVeg ?? false,
           freeDeliveryThreshold: seedRestaurant.freeDeliveryThreshold,
           minOrder: seedRestaurant.minOrder,
           name: seedRestaurant.name,
@@ -365,7 +544,9 @@ const seed = async () => {
             description: seedDish.description,
             isAvailable: true,
             isPopular: seedDish.isPopular ?? false,
+            isVeg: seedDish.isVeg,
             optionGroups: seedDish.optionGroups ?? [],
+            ...(seedDish.imagePreset ? { imagePreset: seedDish.imagePreset } : {}),
             price: seedDish.price,
             section: seedDish.section,
             sortOrder: sortOrder++,

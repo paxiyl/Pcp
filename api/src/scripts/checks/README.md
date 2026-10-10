@@ -21,6 +21,15 @@ caught by reading:
   compiled happily and that crashed or not depending on which model Node
   loaded first.
 
+- **Data that has to be true before anything else works.**
+  `register.check.mjs` walks signing up as a shop, a kitchen and a rider: the
+  account stays a customer, the application exists and is pending, a nameless
+  kitchen leaves no orphan account behind, and approval grants the role and
+  mints the venue. `seed.check.mjs` runs the real seeders in the order an
+  operator runs them and inspects what landed — it caught a preset key that did
+  not exist and kitchens being filed under no category at all when
+  `seed:categories` had not been run first, both of which typecheck perfectly.
+
 ## Running them
 
 They need `mongodb-memory-server`, which downloads a MongoDB binary on first
@@ -29,6 +38,8 @@ run and is deliberately not a dependency of the API:
     npm install --no-save mongodb-memory-server
     npx tsx src/scripts/checks/settlement.check.mjs
     npx tsx src/scripts/checks/order-hooks.check.mjs
+    npx tsx src/scripts/checks/register.check.mjs
+    npx tsx src/scripts/checks/seed.check.mjs
 
 Each exits non-zero on the first failing assertion and prints every result, so
 the output reads as a list of what is true rather than a pass/fail.

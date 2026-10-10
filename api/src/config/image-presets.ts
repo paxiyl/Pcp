@@ -57,6 +57,8 @@ const FOOD: ImagePreset[] = [
   { catalogue: "food", colors: ["#FEE2E2", "#FCA5A5"], glyph: "🍜", key: "chinese", label: "Chinese" },
   { catalogue: "food", colors: ["#DCFCE7", "#86EFAC"], glyph: "🥘", key: "south-indian", label: "South Indian" },
   { catalogue: "food", colors: ["#FDE68A", "#FBBF24"], glyph: "🫓", key: "paratha", label: "Paratha & roti" },
+  { catalogue: "food", colors: ["#FBDFD2", "#F0A882"], glyph: "🍢", key: "tandoori", label: "Tandoori" },
+  { catalogue: "food", colors: ["#F6DED4", "#E0A58A"], glyph: "🥙", key: "kebab", label: "Kebab" },
   { catalogue: "food", colors: ["#FFE4E6", "#FDA4AF"], glyph: "🥗", key: "chaat", label: "Chaat" },
   { catalogue: "food", colors: ["#FEF3C7", "#FCD34D"], glyph: "🥟", key: "samosa", label: "Samosa & pakora" },
   { catalogue: "food", colors: ["#F1F5F9", "#CBD5E1"], glyph: "🥠", key: "momos", label: "Momos" },
