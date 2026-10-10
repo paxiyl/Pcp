@@ -38,6 +38,15 @@ caught by reading:
   fetched four result groups and returned two, and the two halves of that
   contract live in different codebases and agree only by hand.
 
+- **Paths that do not exist.** `route-coverage.check.mjs` reads the API's route
+  table off the real Express routers, reads every `API.get/post/patch/put/delete`
+  call out of the two clients' API modules, and compares them. `API.get("/banners")`
+  typechecks, returns the declared type, and 404s forever — the path is
+  `/banners/active`. It also fails on a route file nobody mounts and on the same
+  method and path registered twice, and prints the routes neither client calls,
+  which is how the owner catalogue gap surfaced: the API has had create and
+  delete for products and dishes all along and no screen ever called them.
+
 - **Where the app sends you.** `mobile-routing.check.mjs` is the one check that
   reads `mobile/` rather than the API, because the decision it covers broke
   twice and neither break was visible from this side. The server filed a
