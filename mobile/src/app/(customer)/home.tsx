@@ -26,9 +26,11 @@ import { ProductRail } from "@/components/product-rail";
 import { ProductRailSkeleton, StoreListSkeleton } from "@/components/product-skeletons";
 import { RestaurantCard } from "@/components/restaurant-card";
 import { StoreCard } from "@/components/store-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import { useBanners } from "@/features/catalogue/use-banners";
+import { useCategories } from "@/features/catalogue/use-categories";
 import { useProducts, useStores, useTopLevelCategories } from "@/features/catalogue/use-stores";
 import { useRestaurants } from "@/features/catalogue/use-restaurants";
 import { useDefaultAddress } from "@/features/location/use-addresses";
@@ -60,7 +62,7 @@ export default function HomeScreen() {
   const [addressSheetOpen, setAddressSheetOpen] = useState(false);
   const handedOff = useRef(false);
 
-  const { mode, progress } = useDeliveryMode();
+  const { mode, progress, setMode } = useDeliveryMode();
   // Flips at the midpoint of the dissolve, so the swap happens while the
   // content is invisible rather than popping in front of the customer.
   const [shown, setShown] = useState<"grocery" | "food">("grocery");
@@ -98,6 +100,7 @@ export default function HomeScreen() {
   const { data: address } = useDefaultAddress();
   const { data: liveBanners, refetch: refetchBanners } = useBanners();
   const categories = useTopLevelCategories();
+  const foodCategories = useCategories();
   const stores = useStores();
   const deals = useProducts({ limit: 10, sort: "discount" });
   const popular = useProducts({ limit: 10, sort: "popular" });
@@ -147,8 +150,28 @@ export default function HomeScreen() {
 
   const greeting = user?.name ? `Hi ${user.name.split(" ")[0]}` : "Hi there";
 
+  /** The strip's label for the selected slug, so an empty state can name it. */
+  const foodCategoryName =
+    foodCategory === "all"
+      ? null
+      : ((foodCategories.data ?? []).find((category) => category.slug === foodCategory)?.name ??
+        null);
+
   // Everything failed, not just one shelf. One message beats four.
   const allFailed = deals.isError && popular.isError && stores.isError;
+
+  /**
+   * Nothing is listed at all — a brand-new city, or one where every shop is
+   * still being onboarded. Three stacked empty shelves read as a broken app, so
+   * this says it once and offers the other half of the catalogue instead.
+   */
+  const groceryReady = !deals.isLoading && !popular.isLoading && !stores.isLoading;
+  const groceryEmpty =
+    groceryReady &&
+    !allFailed &&
+    (deals.data?.products.length ?? 0) === 0 &&
+    (popular.data?.products.length ?? 0) === 0 &&
+    (stores.data ?? []).length === 0;
 
   return (
     <View className="flex-1 bg-background">
@@ -282,51 +305,78 @@ export default function HomeScreen() {
           />
         ) : null}
 
-        <View className="pt-7">
-          {deals.isLoading ? (
-            <ProductRailSkeleton />
-          ) : (
-            <ProductRail
-              onPressProduct={openProduct}
-              onSeeAll={() => router.push({ params: { slug: "all", sort: "discount" }, pathname: "/category/[slug]" })}
-              products={deals.data?.products ?? []}
-              subtitle="Biggest savings in Hindaun right now"
-              title="Today's deals"
-            />
-          )}
-        </View>
-
-        <View className="pt-7">
-          {popular.isLoading ? (
-            <ProductRailSkeleton />
-          ) : (
-            <ProductRail
-              onPressProduct={openProduct}
-              onSeeAll={() => router.push({ params: { slug: "all" }, pathname: "/category/[slug]" })}
-              products={popular.data?.products ?? []}
-              title="Popular in Hindaun"
-            />
-          )}
-        </View>
-
-        <View className="pt-7">
-          <SectionHeader subtitle="Delivering to you now" title="Shops near you" />
-          {stores.isLoading ? (
-            <StoreListSkeleton />
-          ) : (
-            <View className="gap-4 px-gutter">
-              {(stores.data ?? []).slice(0, 5).map((store) => (
-                <StoreCard
-                  key={store._id}
-                  onPress={() =>
-                    router.push({ params: { slug: store.slug }, pathname: "/store/[slug]" })
+        {groceryEmpty ? (
+          <EmptyState
+            actionLabel="Look at food instead"
+            icon="storefront-outline"
+            message={`No shop in ${BRAND.city} has listed anything yet. We are signing them up — try the kitchens in the meantime, or pull down to check again.`}
+            onAction={() => setMode("food")}
+            title="No shops open yet"
+          />
+        ) : (
+          <>
+            <View className="pt-7">
+              {deals.isLoading ? (
+                <ProductRailSkeleton />
+              ) : (
+                <ProductRail
+                  onPressProduct={openProduct}
+                  onSeeAll={() =>
+                    router.push({
+                      params: { slug: "all", sort: "discount" },
+                      pathname: "/category/[slug]",
+                    })
                   }
-                  store={store}
+                  products={deals.data?.products ?? []}
+                  subtitle="Biggest savings in Hindaun right now"
+                  title="Today's deals"
                 />
-              ))}
+              )}
             </View>
-          )}
-        </View>
+
+            <View className="pt-7">
+              {popular.isLoading ? (
+                <ProductRailSkeleton />
+              ) : (
+                <ProductRail
+                  onPressProduct={openProduct}
+                  onSeeAll={() =>
+                    router.push({ params: { slug: "all" }, pathname: "/category/[slug]" })
+                  }
+                  products={popular.data?.products ?? []}
+                  title="Popular in Hindaun"
+                />
+              )}
+            </View>
+
+            <View className="pt-7">
+              <SectionHeader subtitle="Delivering to you now" title="Shops near you" />
+              {stores.isLoading ? (
+                <StoreListSkeleton />
+              ) : (stores.data ?? []).length === 0 ? (
+                /* The header used to sit above nothing at all here. */
+                <EmptyState
+                  compact
+                  icon="storefront-outline"
+                  message="The shops in your area have not opened their shutters on Raket yet. The shelves above still deliver."
+                  title="No shops nearby yet"
+                />
+              ) : (
+                <View className="gap-4 px-gutter">
+                  {(stores.data ?? []).slice(0, 5).map((store) => (
+                    <StoreCard
+                      key={store._id}
+                      onPress={() =>
+                        router.push({ params: { slug: store.slug }, pathname: "/store/[slug]" })
+                      }
+                      store={store}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          </>
+        )}
             </>
           ) : (
             <>
@@ -345,25 +395,41 @@ export default function HomeScreen() {
               <View className="pt-4">
                 {restaurants.isLoading ? (
                   <StoreListSkeleton />
-                ) : (restaurants.data ?? []).length === 0 ? (
+                ) : restaurants.isError ? (
                   <ErrorState
                     compact
+                    message="We could not load the kitchens near you. Check your connection and try again."
+                    onRetry={refreshAll}
+                  />
+                ) : (restaurants.data ?? []).length === 0 ? (
+                  /*
+                    An empty list is not an error, and it used to be shown as
+                    one. The copy names the filter that emptied it, because
+                    "nothing matched" without saying what was being matched
+                    leaves the customer with nothing to change.
+                  */
+                  <EmptyState
+                    actionLabel={filtered ? "Show every kitchen" : undefined}
+                    compact
+                    icon="restaurant-outline"
                     message={
-                      filtered
-                        ? "No kitchens match that filter right now."
-                        : "No kitchens are delivering to you yet. Swipe back to groceries, or try again shortly."
+                      foodCategoryName && vegOnly
+                        ? `No kitchen near you has a veg ${foodCategoryName.toLowerCase()} menu yet.`
+                        : foodCategoryName
+                          ? `Nobody in ${BRAND.city} is cooking ${foodCategoryName.toLowerCase()} yet. Try another category, or see everything.`
+                          : vegOnly
+                            ? "No kitchen near you is listed as pure veg yet."
+                            : `No kitchen in ${BRAND.city} is taking orders yet. We are signing them up — pull down to check again.`
                     }
-                    // Retrying a filter that matched nothing just fetches the
-                    // same empty list, so the action clears the filter instead.
-                    onRetry={
+                    onAction={
                       filtered
                         ? () => {
                             setFoodCategory("all");
                             setVegOnly(false);
                           }
-                        : refreshAll
+                        : undefined
                     }
-                    retryLabel={filtered ? "Clear filters" : undefined}
+                    title={filtered ? "Nothing in that filter" : "No kitchens open yet"}
                   />
                 ) : (
                   <View className="gap-4 px-gutter">

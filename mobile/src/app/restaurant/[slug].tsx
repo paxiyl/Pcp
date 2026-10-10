@@ -8,6 +8,7 @@ import { useCSSVariable } from "uniwind";
 import { BasketBar } from "@/components/basket-bar";
 import { VegMark } from "@/components/veg-toggle";
 import { RestaurantDetailSkeleton } from "@/components/restaurant-detail-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useAddBasketItem, useBasket } from "@/features/basket/use-basket";
 import { useRestaurant } from "@/features/catalogue/use-restaurants";
 import type { Dish } from "@/lib/api";
@@ -292,6 +293,17 @@ export default function RestaurantDetailScreen() {
         </View>
 
         {/* 3 — the menu: image left, details centre, add on the right */}
+        {dishes.length === 0 ? (
+          /* A kitchen that has signed up but not listed anything yet. Common
+             while owners are onboarding, and it used to render as a bare "0
+             items" header above blank space. */
+          <EmptyState
+            icon="restaurant-outline"
+            message={`${restaurant.name} is set up on Raket but has not put its menu in yet. It should not be long.`}
+            title="Menu coming soon"
+          />
+        ) : null}
+
         <View className="px-5">
           {dishes.map((dish, index) => (
             <Pressable

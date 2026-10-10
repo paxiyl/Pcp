@@ -586,8 +586,28 @@ export const getRestaurantQueryFn = async (slug: string): Promise<RestaurantResp
 
 export const getDishQueryFn = async (id: string): Promise<DishResponse> => API.get(`/dishes/${id}`);
 
-export const searchQueryFn = async (q: string): Promise<SearchResponse> =>
-  API.get("/search", { params: { q } });
+export const searchQueryFn = async (
+  q: string,
+  mode?: DeliveryCatalogue,
+): Promise<SearchResponse> => API.get("/search", { params: { mode, q } });
+
+/** Which half of the catalogue a search came from. */
+export type DeliveryCatalogue = "grocery" | "food";
+
+export type RequestItemResponse = {
+  message: string;
+  data: { term: string; mode: DeliveryCatalogue };
+};
+
+/**
+ * "We do not sell that yet — do you want us to?" Recorded so the operator can
+ * see what Hindaun keeps asking for and stock it, rather than the app
+ * apologising into the void.
+ */
+export const requestItemMutationFn = async (input: {
+  term: string;
+  mode: DeliveryCatalogue;
+}): Promise<RequestItemResponse> => API.post("/search/requests", input);
 
 /* Product catalogue */
 

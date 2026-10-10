@@ -8,6 +8,7 @@ import {
   LayoutDashboardIcon,
   LogOutIcon,
   ReceiptTextIcon,
+  SearchXIcon,
   SettingsIcon,
   UsersIcon,
   StoreIcon,
@@ -54,6 +55,7 @@ const NAV = [
   { icon: UsersIcon, label: "Customers", to: "/customers" },
   { icon: BikeIcon, label: "Riders", to: "/riders" },
   { icon: ClipboardListIcon, label: "Applications", to: "/applications" },
+  { icon: SearchXIcon, label: "What people want", to: "/demand" },
   { icon: ImageIcon, label: "Banners", to: "/banners" },
   { icon: SettingsIcon, label: "Settings", to: "/settings" },
 ];

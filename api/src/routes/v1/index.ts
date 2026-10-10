@@ -14,7 +14,7 @@ import { categoryRoutes } from "./category.route";
 import { driverRoutes } from "./driver.route";
 import { orderRoutes } from "./order.route";
 import { dishRoutes, restaurantRoutes } from "./restaurant.route";
-import { searchRoutes } from "./search.route";
+import { adminDemandRoutes, searchRoutes } from "./search.route";
 import { settingsRoutes } from "./settings.route";
 import { adminStoreOwnerRoutes } from "./admin-store-owner.route";
 import {
@@ -54,6 +54,7 @@ routes.use("/admin/settings", settingsRoutes);
 routes.use("/admin/analytics", analyticsRoutes);
 routes.use("/admin/banners", adminBannerRoutes);
 routes.use("/admin/categories", adminCategoryRoutes);
+routes.use("/admin/demand", adminDemandRoutes);
 routes.use("/admin/customers", adminCustomerRoutes);
 routes.use("/admin/orders", adminOrderRoutes);
 routes.use("/admin/restaurants", adminRestaurantRoutes);

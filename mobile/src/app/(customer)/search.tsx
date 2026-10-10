@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from "react-native";
@@ -23,12 +24,43 @@ import {
   POPULAR_SEARCHES,
   rememberSearch,
 } from "@/features/catalogue/recent-searches";
-import { useSearch } from "@/features/catalogue/use-search";
+import { useRequestItem, useSearch } from "@/features/catalogue/use-search";
+import { useDeliveryMode } from "@/features/mode/delivery-mode";
 import { BRAND } from "@/lib/brand";
+import { formatPrice } from "@/lib/format";
 import * as haptics from "@/lib/haptics";
 import { toast } from "@/lib/sonner";
 
 type Filter = "all" | "products" | "stores" | "food";
+
+/**
+ * A 56px square for a result row. An owner who has not uploaded a photo yet
+ * gets an icon rather than the bare grey square this used to render, which read
+ * as an image that had failed to load.
+ */
+const Thumbnail = ({
+  fallback,
+  tint,
+  uri,
+}: {
+  fallback: keyof typeof Ionicons.glyphMap;
+  tint: string;
+  uri?: string;
+}) =>
+  uri ? (
+    <Image
+      accessibilityIgnoresInvertColors
+      alt=""
+      contentFit="cover"
+      source={{ uri }}
+      style={{ borderRadius: 12, height: 56, width: 56 }}
+      transition={200}
+    />
+  ) : (
+    <View className="h-14 w-14 items-center justify-center rounded-card bg-muted">
+      <Ionicons color={tint} name={fallback} size={22} />
+    </View>
+  );
 
 const FILTERS: [Filter, string][] = [
   ["all", "All"],
@@ -71,14 +103,17 @@ export default function SearchScreen() {
     void getRecentSearches().then(setRecent);
   }, []);
 
-  const { data, isError, isLoading, isTyping, refetch, term: settled } = useSearch(term);
+  const { mode } = useDeliveryMode();
+  const { data, isError, isLoading, isTyping, refetch, term: settled } = useSearch(term, mode);
+  const requestItem = useRequestItem();
 
   // Remembered only once the term has settled and actually returned something.
   // Storing every keystroke would fill the list with "a", "at", "att".
   useEffect(() => {
     if (!settled || isLoading || isTyping || !data) return;
 
-    const found = data.products.length + data.stores.length + data.restaurants.length;
+    const found =
+      data.products.length + data.stores.length + data.restaurants.length + data.dishes.length;
 
     if (found > 0) void rememberSearch(settled).then(setRecent);
   }, [data, isLoading, isTyping, settled]);
@@ -110,11 +145,36 @@ export default function SearchScreen() {
     [addProduct, items, setQuantity],
   );
 
+  // Reset per term, so searching something else offers the ask again.
+  const [askedFor, setAskedFor] = useState<string | null>(null);
+  const asked = askedFor !== null && askedFor === settled;
+
+  const ask = () => {
+    const wanted = settled.trim();
+
+    if (!wanted || requestItem.isPending) return;
+
+    requestItem.mutate(
+      { mode, term: wanted },
+      {
+        onError: (error) =>
+          toast.error("We could not pass that on", { description: error.message }),
+        onSuccess: () => {
+          setAskedFor(settled);
+          haptics.selection();
+        },
+      },
+    );
+  };
+
   const hasTerm = term.trim().length > 0;
   const products = data?.products ?? [];
   const stores = data?.stores ?? [];
   const restaurants = data?.restaurants ?? [];
-  const total = products.length + stores.length + restaurants.length;
+  // Dishes were fetched and then dropped, so searching a dish by name read as
+  // "no results" even when the kitchen serving it was listed.
+  const dishes = data?.dishes ?? [];
+  const total = products.length + stores.length + restaurants.length + dishes.length;
   const busy = isLoading || isTyping;
   const cardWidth = (width - 40 - 12) / 2;
 
@@ -193,7 +253,7 @@ export default function SearchScreen() {
           <View className="pt-6">
             <SectionHeader subtitle="What Hindaun is buying" title="Popular searches" />
             <View className="flex-row flex-wrap gap-2 px-gutter">
-              {POPULAR_SEARCHES.map((item) => (
+              {POPULAR_SEARCHES[mode].map((item) => (
                 <Pressable
                   accessibilityLabel={`Search ${item}`}
                   accessibilityRole="button"
@@ -231,7 +291,7 @@ export default function SearchScreen() {
                 : value === "stores"
                   ? stores.length
                   : value === "food"
-                    ? restaurants.length
+                    ? restaurants.length + dishes.length
                     : total;
 
             if (count === 0 && value !== "all") return null;
@@ -284,12 +344,24 @@ export default function SearchScreen() {
             title="Search is unavailable"
           />
         ) : total === 0 ? (
+          /*
+            "Check the spelling" was the old copy here, which blames the
+            customer for a gap in our catalogue. In a city this size the honest
+            answer is almost always that nobody lists it yet — so say that, and
+            then do something with it.
+          */
           <EmptyState
-            actionLabel="Clear search"
-            icon="search-outline"
-            message={`Nothing matched "${term.trim()}". Try a shorter word, or check the spelling.`}
-            onAction={() => setTerm("")}
-            title="No results"
+            actionLabel={asked ? undefined : "Tell us you want it"}
+            icon={mode === "food" ? "restaurant-outline" : "basket-outline"}
+            message={
+              asked
+                ? `We have noted that you are looking for ${term.trim()}. If a shop near you lists it, you will be the first to know.`
+                : mode === "food"
+                  ? `No kitchen in ${BRAND.city} is cooking ${term.trim()} yet. Let us know you want it and we will go looking.`
+                  : `No shop in ${BRAND.city} lists ${term.trim()} yet. Let us know you want it and we will go looking.`
+            }
+            onAction={asked ? undefined : ask}
+            title={asked ? "Thanks — noted" : `Sorry, no ${term.trim()} yet`}
           />
         ) : (
           <>
@@ -338,7 +410,7 @@ export default function SearchScreen() {
 
             {showFood && restaurants.length > 0 ? (
               <View className="pt-7">
-                <SectionHeader title="Food" />
+                <SectionHeader title="Kitchens" />
                 <View className="gap-4 px-gutter">
                   {restaurants.map((restaurant) => (
                     <Pressable
@@ -357,7 +429,11 @@ export default function SearchScreen() {
                         })
                       }
                     >
-                      <View className="h-14 w-14 overflow-hidden rounded-card bg-muted" />
+                      <Thumbnail
+                        fallback="restaurant-outline"
+                        tint={subtle as string}
+                        uri={restaurant.imageUrl}
+                      />
                       <View className="flex-1">
                         <Text className="font-label text-body text-foreground" numberOfLines={1}>
                           {restaurant.name}
@@ -367,6 +443,47 @@ export default function SearchScreen() {
                         </Text>
                       </View>
                       <Ionicons color={subtle as string} name="chevron-forward" size={16} />
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            {/*
+              Dishes were fetched by the API and then thrown away here, so
+              searching for "paneer tikka" found nothing unless a kitchen
+              happened to be called that. The dish is usually what was meant.
+            */}
+            {showFood && dishes.length > 0 ? (
+              <View className="pt-7">
+                <SectionHeader title="Dishes" />
+                <View className="gap-4 px-gutter">
+                  {dishes.map((dish) => (
+                    <Pressable
+                      accessibilityLabel={`${dish.name} at ${dish.restaurantId.name}`}
+                      accessibilityRole="button"
+                      className="flex-row items-center gap-3 active:opacity-70"
+                      key={dish._id}
+                      onPress={() =>
+                        router.push({ params: { id: dish._id }, pathname: "/dish/[id]" })
+                      }
+                    >
+                      <Thumbnail
+                        fallback="fast-food-outline"
+                        tint={subtle as string}
+                        uri={dish.imageUrl}
+                      />
+                      <View className="flex-1">
+                        <Text className="font-label text-body text-foreground" numberOfLines={1}>
+                          {dish.name}
+                        </Text>
+                        <Text className="font-sans text-caption text-text-muted" numberOfLines={1}>
+                          {dish.restaurantId.name}
+                        </Text>
+                      </View>
+                      <Text className="font-heading text-label text-foreground">
+                        {formatPrice(dish.price)}
+                      </Text>
                     </Pressable>
                   ))}
                 </View>

@@ -14,7 +14,7 @@ export const queryKeys = {
   driverHome: ["driverHome"] as const,
   order: (id: string) => ["order", id] as const,
   orders: ["orders"] as const,
-  search: (term: string) => ["search", term] as const,
+  search: (term: string, mode: string) => ["search", mode, term] as const,
   restaurant: (slug: string) => ["restaurant", slug] as const,
   restaurants: (filters: { category?: string; search?: string } = {}) =>
     ["restaurants", filters] as const,

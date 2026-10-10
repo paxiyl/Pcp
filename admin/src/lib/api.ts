@@ -1013,3 +1013,33 @@ export const getAuthProvidersQueryFn = async (): Promise<AuthProvidersResponse> 
 
 export const googleSignInMutationFn = async (idToken: string): Promise<AuthResponse> =>
   API.post("/auth/google", { idToken });
+
+/* Unmet demand — what customers searched for and we could not sell them */
+
+export type DemandMode = "grocery" | "food";
+
+export type DemandSignal = {
+  _id: string;
+  term: string;
+  mode: DemandMode;
+  /** Every search that came up empty for this term. */
+  requests: number;
+  /** The subset who tapped "we want this", which is the stronger signal. */
+  askedCount: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  resolvedAt?: string;
+};
+
+type DemandResponse = { message: string; data: { signals: DemandSignal[] } };
+
+export const getDemandQueryFn = async (params?: {
+  mode?: DemandMode;
+  includeResolved?: boolean;
+}): Promise<DemandResponse> => API.get("/admin/demand", { params });
+
+export const resolveDemandMutationFn = async (input: {
+  id: string;
+  resolved: boolean;
+}): Promise<{ message: string; data: { signal: DemandSignal } }> =>
+  API.patch(`/admin/demand/${input.id}`, { resolved: input.resolved });

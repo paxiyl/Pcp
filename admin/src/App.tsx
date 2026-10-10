@@ -10,6 +10,7 @@ import { BannersPage } from "@/pages/banners/banners-page";
 import { CategoriesPage } from "@/pages/categories/categories-page";
 import { CustomersPage } from "@/pages/customers/customers-page";
 import { DashboardPage } from "@/pages/dashboard/dashboard-page";
+import { DemandPage } from "@/pages/demand/demand-page";
 import { OrderDetailPage } from "@/pages/orders/order-detail-page";
 import { OrdersPage } from "@/pages/orders/orders-page";
 import { RestaurantDetailPage } from "@/pages/restaurants/restaurant-detail-page";
@@ -46,6 +47,7 @@ export default function App() {
               <Route path="/banners" element={<BannersPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/demand" element={<DemandPage />} />
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/orders/:orderId" element={<OrderDetailPage />} />
               <Route path="/restaurants" element={<RestaurantsPage />} />

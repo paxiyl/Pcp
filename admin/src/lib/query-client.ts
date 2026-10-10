@@ -19,6 +19,8 @@ export const queryKeys = {
   adminStoreOwners: (filters: object) => ["adminStoreOwners", filters] as const,
   adminRiders: (filters: object) => ["adminRiders", filters] as const,
   applications: (status?: string) => ["applications", status ?? "all"] as const,
+  demand: (mode: string, includeResolved: boolean) =>
+    ["demand", mode, includeResolved] as const,
   adminCustomers: (filters: object) => ["adminCustomers", filters] as const,
   adminBanners: ["adminBanners"] as const,
   settings: ["settings"] as const,

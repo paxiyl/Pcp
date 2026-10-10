@@ -263,7 +263,7 @@ export default function OrdersScreen() {
             No orders yet
           </Text>
           <Text className="text-center font-sans text-body text-muted-foreground">
-            When you place an order, you can follow it here from the kitchen to your door.
+            When you place an order, you can follow it here from the shop to your door.
           </Text>
           <Pressable
             accessibilityRole="button"
@@ -271,7 +271,7 @@ export default function OrdersScreen() {
             onPress={() => router.replace("/home")}
           >
             <Text className="font-heading text-body text-primary-foreground">
-              Discover restaurants
+              Start shopping
             </Text>
           </Pressable>
         </View>

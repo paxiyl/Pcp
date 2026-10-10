@@ -66,13 +66,14 @@ export const clearRecentSearches = async (): Promise<void> => {
  * Hand-picked for Hindaun rather than computed — a "trending" list built from a
  * handful of early orders is noise dressed as data.
  */
-export const POPULAR_SEARCHES = [
-  "Atta",
-  "Milk",
-  "Ghee",
-  "Tomato",
-  "Namkeen",
-  "Surf Excel",
-  "Paneer",
-  "Tea",
-] as const;
+/**
+ * Suggestions for an empty search box, per catalogue.
+ *
+ * Offering "Atta" to someone who has just switched to food is a dead end — it
+ * is a grocery term and a kitchen will never match it — so the two halves of
+ * the app suggest their own.
+ */
+export const POPULAR_SEARCHES: Record<"grocery" | "food", readonly string[]> = {
+  food: ["Pizza", "Burger", "Thali", "Chowmein", "Biryani", "Samosa", "Ice cream", "Cold drink"],
+  grocery: ["Atta", "Milk", "Ghee", "Tomato", "Namkeen", "Surf Excel", "Paneer", "Tea"],
+};
