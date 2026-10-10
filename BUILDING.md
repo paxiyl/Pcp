@@ -26,6 +26,21 @@ npm run dev           # nodemon + tsx, watching src/
 exits immediately on a missing `MONGODB_URI`, which is the first variable
 `src/config/env.config.ts` asks for.
 
+After an index definition changes, once:
+
+```bash
+npm run sync:indexes
+```
+
+The app does not do this on boot. `autoIndex` runs `createIndexes`, which only
+ADDS — it cannot replace an index whose definition changed, and when the change
+collides with an existing name MongoDB refuses it outright
+(`IndexKeySpecsConflict`), logs the refusal among the startup lines, and leaves
+the old index in place with the new rule unenforced. `syncIndexes` DROPS
+anything not in the schema, which is why it is a deliberate command: an index
+added by hand against a live performance problem would go with it. It prints
+what it dropped and exits non-zero on failure.
+
 Seeds, once the database is reachable:
 
 ```bash
