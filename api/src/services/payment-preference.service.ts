@@ -65,7 +65,7 @@ export const setPreferredPaymentMethod = async (
   const updated = await UserModel.findByIdAndUpdate(
     userId,
     { $set: { preferredPaymentMethod: method } },
-    { new: true },
+    { returnDocument: "after" },
   ).exec();
 
   if (!updated) throw new NotFoundException("Account not found");

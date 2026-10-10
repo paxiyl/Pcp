@@ -339,7 +339,7 @@ const seed = async () => {
         parentId: null,
         sortOrder: category.sortOrder,
       },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     ).exec();
 
     categoryIds.set(category.slug, record._id.toString());
@@ -362,7 +362,7 @@ const seed = async () => {
         parentId,
         sortOrder: category.sortOrder,
       },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     ).exec();
 
     categoryIds.set(category.slug, record._id.toString());
@@ -402,7 +402,7 @@ const seed = async () => {
         isOpen: true,
         location: { coordinates: [longitude, latitude], type: "Point" },
       },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     ).exec();
 
     for (const product of products) {
@@ -439,7 +439,7 @@ const seed = async () => {
             : { isDefaultVariant: true }),
           requiresPrescription: product.requiresPrescription ?? false,
         },
-        { new: true, upsert: true },
+        { returnDocument: "after", upsert: true },
       ).exec();
 
       productCount += 1;

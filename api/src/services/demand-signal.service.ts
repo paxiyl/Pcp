@@ -102,5 +102,5 @@ export const setDemandResolved = async (
   DemandSignalModel.findByIdAndUpdate(
     id,
     resolved ? { $set: { resolvedAt: new Date() } } : { $unset: { resolvedAt: 1 } },
-    { new: true },
+    { returnDocument: "after" },
   ).exec();
