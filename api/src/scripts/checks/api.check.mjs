@@ -890,6 +890,23 @@ if (riderSession?.accessToken) {
 /* A 404 must be a clean JSON 404, not an HTML error page or a crash. */
 await expectKeys("an unknown route is a clean 404", "/does-not-exist", [], { status: 404 });
 
+/*
+  The backoffice is only mounted when NODE_ENV=production, and this check boots
+  in development. Opening `/` therefore 404s — but it must say WHY. It used to
+  answer a bare "Route not found: GET /", which is what an operator following
+  the setup instructions sees when the variable did not reach the process, with
+  nothing anywhere telling them that was the problem.
+*/
+const root = await fetch(`http://127.0.0.1:${PORT}/`);
+const rootBody = await root.json().catch(() => ({}));
+
+record("GET / is a 404 without the backoffice mounted", root.status === 404, root.status);
+record(
+  "and it names NODE_ENV as the reason",
+  typeof rootBody.message === "string" && rootBody.message.includes("NODE_ENV=production"),
+  rootBody.message,
+);
+
 /* --------------------------------------------------------------- teardown -- */
 
 /** Takes down the whole process group; the node child is not `server` itself. */

@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import cookieParser from "cookie-parser";
@@ -19,6 +20,19 @@ import { logger } from "./utils/logger";
 
 const app = express();
 const isProduction = Env.NODE_ENV === "production";
+
+/*
+  The backoffice, served by the API itself so the admin cookie and the client's
+  relative `/api/v1` base URL are same-origin — no second server, no CORS.
+
+  Resolved and tested here rather than inside the `if` below so the boot log can
+  say which of the two reasons it is NOT being served. Both of them used to
+  present identically: `GET /` answered "Route not found", with nothing
+  anywhere saying that production mode was off or that admin/dist was missing.
+*/
+// The bundle runs from api/dist, so the admin build sits two levels up.
+const adminDistPath = path.resolve(__dirname, "../../admin/dist");
+const adminBuilt = existsSync(path.join(adminDistPath, "index.html"));
 
 app.disable("x-powered-by");
 // Render terminates TLS in front of the app; without this Express sees the
@@ -70,10 +84,7 @@ app.get("/health", (_request, response) => response.status(HTTPSTATUS.OK).json({
 
 app.use("/api/v1", apiLimiter, routes);
 
-if (isProduction) {
-  // The bundle runs from api/dist, so the admin build sits two levels up.
-  const adminDistPath = path.resolve(__dirname, "../../admin/dist");
-
+if (isProduction && adminBuilt) {
   app.use(
     express.static(adminDistPath, {
       // Vite fingerprints everything under /assets, so those are safe to pin.
@@ -92,6 +103,21 @@ if (isProduction) {
 }
 
 app.use((request, _response, next) => {
+  /*
+    A non-API path reaching here means the backoffice is not mounted, and the
+    bare "Route not found" gave no hint which of the two reasons it was. This is
+    the operator opening `/` in a browser, so it says what to do about it.
+  */
+  if (!request.path.startsWith("/api") && request.method === "GET") {
+    const reason = !isProduction
+      ? `the backoffice is only served when NODE_ENV=production (it is "${Env.NODE_ENV}")`
+      : `admin/dist is missing — run \`npm run build\` in admin/`;
+
+    next(new NotFoundException(`No backoffice here: ${reason}`));
+
+    return;
+  }
+
   next(new NotFoundException(`Route not found: ${request.method} ${request.originalUrl}`));
 });
 
@@ -104,6 +130,21 @@ const startServer = async () => {
   
   const server = app.listen(Env.PORT, () => {
     logger.info("API listening", { port: Env.PORT, environment: Env.NODE_ENV });
+
+    // Said at boot, where an operator is already looking, rather than left to
+    // be discovered as a 404 on the one URL they were told to open.
+    if (isProduction && adminBuilt) {
+      logger.info("Backoffice served at /", { from: adminDistPath });
+    } else if (isProduction) {
+      logger.warn("Backoffice NOT served: no build found. Run `npm run build` in admin/", {
+        expected: adminDistPath,
+      });
+    } else {
+      logger.warn("Backoffice NOT served: NODE_ENV is not production", {
+        nodeEnv: Env.NODE_ENV,
+        start: "NODE_ENV=production node dist/index.js",
+      });
+    }
   });
 
   const shutdownSignals: NodeJS.Signals[] = ["SIGTERM", "SIGINT"];
