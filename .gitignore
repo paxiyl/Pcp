@@ -1,0 +1,13 @@
+# Local dev classpath produced by tools/bootstrap-devenv.sh. Holds Mojang's client jar and a
+# JDK; never redistributed, never committed.
+.devenv/
+
+# Build outputs
+build/
+out/
+.gradle/
+*.class
+
+# The released jar is committed (an Android user cannot build it on their phone), but the
+# intermediate MCP-named build is not.
+dist/*-dev.jar

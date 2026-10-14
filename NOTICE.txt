@@ -1,0 +1,10 @@
+PcpClip
+Copyright (c) 2026 paxiyl
+
+Licensed under the MIT Licence; see LICENSE.
+
+This mod bundles JCodec (https://jcodec.org), which provides the optional pure-Java H.264
+encoder used for MP4 output. JCodec is distributed under the FreeBSD (2-clause BSD) licence;
+see http://jcodec.org/lic.html. JCodec is included because it is pure Java with no native
+code, which is what makes it usable inside PojavLauncher's game JVM. Removing the
+org/jcodec/** classes from this jar disables MP4 output and leaves Motion JPEG working.

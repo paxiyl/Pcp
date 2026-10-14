@@ -1,0 +1,97 @@
+// Standard ForgeGradle build for Minecraft 1.8.9.
+//
+// This is the conventional route and the one to prefer when Forge's maven is reachable:
+//
+//     gradle setupDecompWorkspace     (once; or setupCIWorkspace for a faster, source-less setup)
+//     gradle build
+//
+// It needs Gradle 2.14 and a Java 8 JDK, because ForgeGradle 2.1 does not run on anything newer.
+// If Forge's maven is not reachable from your machine, tools/build-jar.sh builds the same jar
+// using only Mojang's client jar and the published MCP mappings - see docs/BUILDING.md.
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { name = 'forge'; url = 'https://maven.minecraftforge.net/' }
+        maven { name = 'forge-legacy'; url = 'https://files.minecraftforge.net/maven' }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+group = 'com.pcpclip'
+archivesBaseName = 'pcpclip'
+version = project.mod_version
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+compileJava.options.encoding = 'UTF-8'
+
+minecraft {
+    version = project.forge_version
+    mappings = project.mappings_version
+    runDir = 'run'
+}
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    // JCodec ships inside the mod jar: one file to install matters on a phone.
+    bundled
+    compile.extendsFrom bundled
+}
+
+dependencies {
+    bundled "org.jcodec:jcodec:${project.jcodec_version}"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+    // stubs/java holds compile-only stand-ins for the Forge API, used only by the
+    // ForgeGradle-free build. Compiling them here would shadow the real Forge classes.
+    test {
+        java {
+            srcDirs = ['src/test/java']
+        }
+    }
+}
+
+// mcmod.info carries literal version numbers so that both build routes - this one and
+// tools/build-jar.sh - produce an identical file.
+
+jar {
+    from {
+        configurations.bundled.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    exclude 'META-INF/maven/**', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+    manifest {
+        attributes 'FMLCorePluginContainsFMLMod': 'false'
+    }
+}
+
+// The core carries no Minecraft types on purpose, so its tests run on a bare JVM.
+task coreTest(type: JavaExec, dependsOn: 'testClasses') {
+    group = 'verification'
+    description = 'Runs the Minecraft-independent core test suite.'
+    main = 'com.pcpclip.test.TestMain'
+    classpath = sourceSets.test.runtimeClasspath
+}
+
+task benchmark(type: JavaExec, dependsOn: 'testClasses') {
+    group = 'verification'
+    description = 'Measures per-frame encoder cost for each preset.'
+    main = 'com.pcpclip.test.BenchmarkMain'
+    classpath = sourceSets.test.runtimeClasspath
+}
