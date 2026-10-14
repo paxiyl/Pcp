@@ -3,7 +3,7 @@
     "modid": "pcpclip",
     "name": "PcpClip",
     "description": "Performance-first instant replay and clipping for Minecraft 1.8.9, built for PojavLauncher on Android. Keeps a short rolling buffer of encoded video so you can save the last 15-120 seconds with one hotkey.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "mcversion": "1.8.9",
     "url": "https://github.com/paxiyl/pcp",
     "authorList": ["paxiyl"],

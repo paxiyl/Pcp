@@ -50,11 +50,13 @@ public final class ClipExporter {
         public final long bytes;
         public final boolean trimmedToSegmentBoundary;
         public final boolean fixedRateApplied;
+        /** True when the source timestamps did not advance and had to be synthesised. */
+        public final boolean degenerateTimestamps;
         public final String message;
 
         Result(boolean success, File file, int frames, double durationSeconds, double measuredFps,
                long bytes, boolean trimmedToSegmentBoundary, boolean fixedRateApplied,
-               String message) {
+               boolean degenerateTimestamps, String message) {
             this.success = success;
             this.file = file;
             this.frames = frames;
@@ -63,11 +65,12 @@ public final class ClipExporter {
             this.bytes = bytes;
             this.trimmedToSegmentBoundary = trimmedToSegmentBoundary;
             this.fixedRateApplied = fixedRateApplied;
+            this.degenerateTimestamps = degenerateTimestamps;
             this.message = message;
         }
 
         static Result failed(String message) {
-            return new Result(false, null, 0, 0.0, 0.0, 0L, false, false, message);
+            return new Result(false, null, 0, 0.0, 0.0, 0L, false, false, false, message);
         }
     }
 
@@ -99,6 +102,8 @@ public final class ClipExporter {
             long nextSlot = 0L;
             byte[] held = null;
             int heldLength = 0;
+            long previousOutPts = Long.MIN_VALUE;
+            boolean degenerate = false;
 
             for (SegmentHandle handle : selection.segments) {
                 boolean skipWholeSegment = handle.endPtsNanos() < from || handle.startPtsNanos() > to;
@@ -132,13 +137,27 @@ public final class ClipExporter {
                                     reader.keyframe());
                             written++;
                         } else {
+                            boolean emitted = false;
                             while (nextSlot <= outPts) {
                                 byte[] payload = held != null ? held : reader.payload();
                                 int length = held != null ? heldLength : reader.payloadLength();
                                 muxer.writeFrame(payload, 0, length, nextSlot, true);
                                 written++;
                                 nextSlot += interval;
+                                emitted = true;
                             }
+                            if (!emitted && outPts == previousOutPts) {
+                                // Timestamps are not advancing at all, so the sample-and-hold loop
+                                // above would emit one frame for the whole clip. Fall back to one
+                                // output frame per input frame: the timing is invented, but the
+                                // footage survives, and the result says so.
+                                muxer.writeFrame(reader.payload(), 0, reader.payloadLength(),
+                                        nextSlot, true);
+                                written++;
+                                nextSlot += interval;
+                                degenerate = true;
+                            }
+                            previousOutPts = outPts;
                             if (held == null || held.length < reader.payloadLength()) {
                                 held = new byte[reader.payloadLength()];
                             }
@@ -172,8 +191,16 @@ public final class ClipExporter {
             double duration = lastWrittenPts > 0L ? lastWrittenPts / 1_000_000_000.0
                     : written / (double) nominalFps;
             double measured = duration > 0.0 && written > 1 ? (written - 1) / duration : nominalFps;
+
+            if (degenerate) {
+                // Re-time the whole clip on the grid we actually wrote it on.
+                duration = written * (interval / 1_000_000_000.0);
+                measured = options.targetFps;
+                PcpLog.warn("Clip timestamps did not advance; exported " + written
+                        + " frames on a synthetic " + options.targetFps + " fps timeline");
+            }
             return new Result(true, target, written, duration, measured, target.length(),
-                    trimmedToBoundary, fixedRate, "Saved " + target.getName());
+                    trimmedToBoundary, fixedRate, degenerate, "Saved " + target.getName());
         } catch (IOException error) {
             PcpLog.error("Could not write " + target, error);
             if (muxer != null) {

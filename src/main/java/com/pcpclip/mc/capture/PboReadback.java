@@ -32,6 +32,8 @@ final class PboReadback {
     private int pendingHeight;
     private long pendingPtsNanos;
     private boolean broken;
+    /** Collects that returned no data. A driver that keeps doing this is not worth paying for. */
+    private int softFailures;
 
     private PboReadback(int buffer, int capacityBytes) {
         this.buffer = buffer;
@@ -97,6 +99,11 @@ final class PboReadback {
         return pending;
     }
 
+    /** Throws away a pending read, used when the capture size changed under it. */
+    void discardPending() {
+        pending = false;
+    }
+
     long pendingPtsNanos() {
         return pendingPtsNanos;
     }
@@ -156,7 +163,17 @@ final class PboReadback {
             destination.flip();
             GL15.glUnmapBuffer(GL21.GL_PIXEL_PACK_BUFFER);
             GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
-            return limit == bytes;
+            if (limit == bytes) {
+                softFailures = 0;
+                return true;
+            }
+            // The driver mapped a buffer but gave back less than a frame. The caller falls back to
+            // a synchronous read, so no frame is lost; give up on asynchronous reads if it keeps
+            // happening rather than paying for a request that never pays off.
+            if (++softFailures >= 2) {
+                fail("the driver returned " + limit + " of " + bytes + " bytes twice");
+            }
+            return false;
         } catch (Throwable error) {
             fail("collecting pixels threw " + error);
             return false;

@@ -19,8 +19,13 @@ import java.util.Locale;
  */
 public final class StorageManager {
 
-    /** Rough bytes per pixel for a quality-55 JPEG of game content, from measured clips. */
-    private static final double MJPEG_BYTES_PER_PIXEL_AT_Q55 = 0.045;
+    /**
+     * Bytes per pixel for a quality-55 JPEG of real gameplay, measured from clips captured on a
+     * device: a plain outdoor scene came out at 0.051 and a dense build at 0.119 bytes per pixel.
+     * The midpoint is used, because a storage estimate that is cheerful is worse than one that is
+     * slightly pessimistic - a clip that does not fit is a clip that is lost.
+     */
+    private static final double MJPEG_BYTES_PER_PIXEL_AT_Q55 = 0.085;
 
     private final File gameDirectory;
     private volatile ClipConfig config;

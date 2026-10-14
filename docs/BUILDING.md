@@ -29,7 +29,7 @@ jar.
 
 ```bash
 tools/bootstrap-devenv.sh    # once
-tools/build-jar.sh           # -> dist/pcpclip-1.0.0-1.8.9.jar
+tools/build-jar.sh           # -> dist/pcpclip-1.0.1-1.8.9.jar
 tools/run-tests.sh
 ```
 

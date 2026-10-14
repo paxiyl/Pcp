@@ -13,7 +13,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEV="$ROOT/.devenv"
 MC_VERSION="1.8.9"
-MOD_VERSION="1.0.0"
+MOD_VERSION="1.0.1"
 JCODEC_JAR="$DEV/libs/jcodec-0.2.5.jar"
 
 JAVA="$DEV/jdk8/bin/java"

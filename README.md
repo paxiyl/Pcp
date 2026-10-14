@@ -8,7 +8,7 @@ recording app, no root, no Zink, no desktop launcher, no FFmpeg binary.
 Built so that it costs as little as possible while it runs, and nothing at all while it is off.
 
 ```
-dist/pcpclip-1.0.0-1.8.9.jar     drop into .minecraft/mods
+dist/pcpclip-1.0.1-1.8.9.jar     drop into .minecraft/mods
 ```
 
 ---
@@ -99,9 +99,18 @@ developed in, and it is the route that was actually used and verified here. Deta
 [docs/BUILDING.md](docs/BUILDING.md).
 
 ```bash
-tools/run-tests.sh             # 1274 assertions, writes real clips, verifies them with ffprobe
+tools/run-tests.sh             # 1319 assertions, writes real clips, verifies them with ffprobe
 tools/run-tests.sh bench       # per-frame encoder cost for every preset
 ```
+
+## Fixed in 1.0.1 (from the first on-device clips)
+
+* Frames were **upside down**. Update if you have 1.0.0.
+* Clips could contain **one frame** when async readback was on. Async readback is now off by
+  default, the underlying timestamp bug is fixed, and the pipeline now survives a capture path
+  that misbehaves instead of silently producing a one-frame clip.
+* Capture now **stops reading frames the encoder cannot absorb**: asking for 120 fps on hardware
+  that sustains 34 no longer costs you the readback for 86 wasted frames a second.
 
 ## Honest limitations
 

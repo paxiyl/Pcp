@@ -70,6 +70,7 @@ public final class CapturePipeline {
     private final SegmentCodec codec;
     private final String backendName;
     private final long segmentNanos;
+    private final long frameIntervalNanos;
     private final int workerCount;
 
     private final BlockingQueue<VideoFrame> inbox;
@@ -87,6 +88,9 @@ public final class CapturePipeline {
     private volatile SegmentTask currentTask;
     private long nextSegmentIndex;
     private long currentSegmentStartPts;
+    private long currentSegmentStartedNanos;
+    /** Last timestamp accepted into the pipeline. Written only by the render thread. */
+    private long lastAcceptedPts = Long.MIN_VALUE;
 
     /** Notified when the pipeline hits a condition the user should hear about. */
     public interface Listener {
@@ -112,6 +116,7 @@ public final class CapturePipeline {
         this.loadMonitor = loadMonitor;
         this.listener = listener;
         this.segmentNanos = Math.max(500L, config.segmentMillis) * 1_000_000L;
+        this.frameIntervalNanos = 1_000_000_000L / Math.max(1, config.targetFps);
         this.workerCount = config.effectiveEncoderThreads();
         this.inbox = new ArrayBlockingQueue<VideoFrame>(Math.max(2, pool.capacity()));
         this.startNanos = System.nanoTime();
@@ -281,12 +286,29 @@ public final class CapturePipeline {
             frame.release();
             return false;
         }
+        // Timestamps must move forward. Everything downstream depends on it: segments rotate on
+        // elapsed presentation time, exports select and trim by it, and a container stores it as
+        // frame duration. A capture path that hands over a repeated timestamp - which an
+        // asynchronous readback can do if its bookkeeping slips - would otherwise stall segment
+        // rotation and collapse a saved clip to a single frame. Nudging the timestamp forward
+        // keeps the clip usable, and the counter makes the fault visible instead of silent.
+        long pts = frame.ptsNanos();
+        if (pts <= lastAcceptedPts) {
+            stats.timestampAnomaly();
+            // Step on by one frame interval rather than a token amount: the synthetic timeline
+            // then runs at roughly the rate being captured, so segments still rotate on time and
+            // the clip still plays at a sane speed.
+            pts = lastAcceptedPts + frameIntervalNanos;
+            frame.setPtsNanos(pts);
+        }
+        lastAcceptedPts = pts;
+
         if (!inbox.offer(frame)) {
             stats.dropQueueFull();
             frame.release();
             return false;
         }
-        stats.captured(frame.ptsNanos(), readbackCostNanos);
+        stats.captured(pts, readbackCostNanos);
         return true;
     }
 
@@ -328,7 +350,13 @@ public final class CapturePipeline {
 
     private void dispatch(VideoFrame frame) throws InterruptedException {
         SegmentTask task = currentTask;
-        if (task == null || frame.ptsNanos() - currentSegmentStartPts >= segmentNanos) {
+        boolean dueByTimestamp = frame.ptsNanos() - currentSegmentStartPts >= segmentNanos;
+        // A wall-clock backstop as well, so that even a capture path with confused timestamps
+        // still closes segments and keeps the rolling buffer clippable. The timestamp test
+        // normally fires first; this only matters when something has gone wrong.
+        boolean dueByClock = currentSegmentStartedNanos > 0L
+                && System.nanoTime() - currentSegmentStartedNanos >= segmentNanos * 2L;
+        if (task == null || dueByTimestamp || dueByClock) {
             task = rotateSegment(frame.ptsNanos());
         }
         if (task == null) {
@@ -382,6 +410,7 @@ public final class CapturePipeline {
                     });
             nextSegmentIndex++;
             currentSegmentStartPts = ptsNanos;
+            currentSegmentStartedNanos = System.nanoTime();
             currentTask = task;
             workers.execute(task);
             return task;

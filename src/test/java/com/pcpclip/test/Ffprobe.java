@@ -52,6 +52,14 @@ final class Ffprobe {
         return values.isEmpty() ? null : values;
     }
 
+    /** Decodes the first frame of a clip to a PNG, so a test can look at real pixels. */
+    static boolean extractFirstFrame(File clip, File png) {
+        List<String> output = run(new String[]{
+                "ffmpeg", "-v", "error", "-y", "-i", clip.getAbsolutePath(),
+                "-frames:v", "1", png.getAbsolutePath()});
+        return output != null && png.isFile() && png.length() > 0L;
+    }
+
     /** True when every frame decodes without an error. */
     static boolean decodes(File file) {
         List<String> output = run(new String[]{

@@ -54,6 +54,19 @@ public class GuiPcpPerformance extends GuiPcpBase {
 
         footerLines.add("The saver lowers capture rate and quality while the game is struggling,"
                 + " then raises it again.");
+        ClipEngine engine = engine();
+        if (engine != null) {
+            ClipEngine.Status status = engine.status();
+            if (status.requestedFps < status.targetFps) {
+                footerLines.add("Capturing at " + status.requestedFps + " fps, not "
+                        + status.targetFps + ": the encoder cannot absorb more, and reading frames"
+                        + " it would drop costs you FPS for nothing.");
+            }
+            if (status.timestampAnomalies > 0L) {
+                footerLines.add("!" + status.timestampAnomalies
+                        + " capture timestamps had to be corrected - please report this.");
+            }
+        }
         PcpClipMod mod = PcpClipMod.instance();
         if (mod != null && config.performanceSaver) {
             footerLines.add("Capture settings are never changed permanently by the saver.");
@@ -72,6 +85,9 @@ public class GuiPcpPerformance extends GuiPcpBase {
                 "%s   captured %.1f fps of %d   dropped %.1f%%   queue %d",
                 status.mode.label(), status.measuredFps, status.targetFps, status.dropPercent,
                 status.backlog);
+        if (status.requestedFps < status.targetFps) {
+            line1 = line1 + "   asking " + status.requestedFps;
+        }
         String line2 = String.format(Locale.ROOT,
                 "readback %.2f ms/frame on the render thread   encode %.0f ms/frame",
                 status.readbackMillis, status.encodeMillis);

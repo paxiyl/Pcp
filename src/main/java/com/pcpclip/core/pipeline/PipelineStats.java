@@ -20,6 +20,7 @@ public final class PipelineStats {
     private final AtomicLong encodedBytes = new AtomicLong();
     private final AtomicLong segmentsWritten = new AtomicLong();
     private final AtomicInteger encoderErrors = new AtomicInteger();
+    private final AtomicLong timestampAnomalies = new AtomicLong();
 
     private final AtomicLong readbackNanos = new AtomicLong();
     private final AtomicLong readbackSamples = new AtomicLong();
@@ -59,6 +60,15 @@ public final class PipelineStats {
 
     public void segmentWritten() {
         segmentsWritten.incrementAndGet();
+    }
+
+    /** A capture arrived with a timestamp that did not move forward; see CapturePipeline.offer. */
+    public void timestampAnomaly() {
+        timestampAnomalies.incrementAndGet();
+    }
+
+    public long timestampAnomalyCount() {
+        return timestampAnomalies.get();
     }
 
     public void encoderError(String message) {

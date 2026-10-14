@@ -92,6 +92,18 @@ public class GuiPcpVideo extends GuiPcpBase {
         }
         footerLines.add(shape.toString());
 
+        // Cropping hard enough to reach the HUD is worth saying out loud: at 21:9 a quarter of
+        // the height goes, which is where the hotbar and the health bar live.
+        if (geometry.cropped && engine != null) {
+            int trimmedRows = Math.max(0, pixelsTrimmedVertically(geometry));
+            int percent = Math.round(trimmedRows * 100.0F / Math.max(1, sourceHeight(geometry)));
+            if (percent >= 10) {
+                footerLines.add("!Crop removes " + percent
+                        + "% of the height - the hotbar and health bar may be cut off. "
+                        + "'Fit with bars' keeps the whole screen.");
+            }
+        }
+
         SegmentCodec codec = resolved == EncoderPreference.MJPEG_AVI
                 ? SegmentCodec.MJPEG : SegmentCodec.H264;
         long estimate = engine.storage().estimateClipBytes(config.clipSeconds, geometry.outWidth,
@@ -103,6 +115,14 @@ public class GuiPcpVideo extends GuiPcpBase {
 
         String note = capabilities.sustainabilityNote(resolved, spec.pixelRate(), workers);
         footerLines.add((note.startsWith("Likely too demanding") ? "!" : "+") + note);
+    }
+
+    private static int pixelsTrimmedVertically(OutputGeometry geometry) {
+        return geometry.srcY * 2;
+    }
+
+    private static int sourceHeight(OutputGeometry geometry) {
+        return geometry.srcHeight + geometry.srcY * 2;
     }
 
     @Override

@@ -110,11 +110,23 @@ The readback happened but the frame was empty. Known causes:
   `performance.asyncReadback=false` first; if it persists, this is worth reporting with the
   probe block.
 
-### Clips are upside down or mirrored
+### Clips are upside down
 
-Should not happen - the vertical flip is part of the conversion step and is covered by tests. If
-it does, it indicates a renderer with different framebuffer orientation; report it with the probe
-block.
+Fixed in 1.0.1. Version 1.0.0 flipped every frame vertically - the hotbar appeared at the top of
+the picture and the sky at the bottom. Update the jar; there is no setting for it and no way to
+rescue an already-saved clip except to re-encode it yourself (`ffmpeg -i clip.avi -vf vflip
+fixed.avi`).
+
+### A clip contains only one frame
+
+Fixed in 1.0.1, and only happened with **async readback** enabled (which is now off by default).
+The capture path handed every frame the same timestamp, so the rolling buffer never rotated a
+segment and a fixed-rate export collapsed the whole clip onto a single time slot.
+
+If you see it on 1.0.1 or later, the pipeline will have corrected and counted it: open
+**Settings -> Performance** and look for *"N capture timestamps had to be corrected"*, or run
+`/pcpclip status`. Please report that number together with the probe block - it means the capture
+layer is still misbehaving, even though the clip survived.
 
 ### The recording dot appears inside my clips
 

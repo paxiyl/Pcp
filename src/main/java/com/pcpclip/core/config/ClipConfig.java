@@ -76,8 +76,15 @@ public final class ClipConfig {
     public int encoderThreads = 0;
     /** Upper bound on pooled capture buffers, in megabytes. Also bounds the drop-free backlog. */
     public int captureMemoryBudgetMb = 48;
-    /** Try asynchronous pixel readback (pixel buffer objects) when the driver really supports it. */
-    public boolean asyncReadback = true;
+    /**
+     * Try asynchronous pixel readback (pixel buffer objects) when the driver really supports it.
+     *
+     * <p>Off by default. It is a genuine saving on the render thread when it works, but it cannot
+     * be tested without a device and GL4ES has been seen to advertise the extension and then not
+     * honour it. Correct capture matters more than a faster capture, so this is opt-in until
+     * someone has confirmed it on real hardware.
+     */
+    public boolean asyncReadback = false;
     /** Rolling buffer granularity. Shorter segments clip more precisely but cost more keyframes. */
     public int segmentMillis = 2000;
 
@@ -358,6 +365,7 @@ public final class ClipConfig {
             out.println("performance.saver=" + performanceSaver);
             out.println("performance.encoderThreads=" + encoderThreads + " # 0 = automatic");
             out.println("performance.captureMemoryBudgetMb=" + captureMemoryBudgetMb);
+            out.println("# Experimental: faster, but unverified on Android GL drivers.");
             out.println("performance.asyncReadback=" + asyncReadback);
             out.println("performance.segmentMillis=" + segmentMillis);
             out.println();

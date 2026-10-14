@@ -23,7 +23,7 @@ OptiFine HD U M5 for 1.8.9 can be installed alongside; see
 
 ## 2. Drop in the jar
 
-Copy `pcpclip-1.0.0-1.8.9.jar` into the `mods` folder of your 1.8.9 instance. On most
+Copy `pcpclip-1.0.1-1.8.9.jar` into the `mods` folder of your 1.8.9 instance. On most
 PojavLauncher layouts that is:
 
 ```

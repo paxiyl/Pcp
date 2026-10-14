@@ -320,7 +320,7 @@ public final class ClipEngine {
         if (active == null || active.paused() || active.isFatal()) {
             return false;
         }
-        int fps = loadMonitor.effectiveFps(config.targetFps);
+        int fps = effectiveCaptureFps(active);
         long interval = 1_000_000_000L / Math.max(1, fps);
         long now = System.nanoTime();
         if (now < nextCaptureNanos) {
@@ -330,6 +330,23 @@ public final class ClipEngine {
         // captures and make the stutter worse.
         nextCaptureNanos = Math.max(now - interval / 2L, nextCaptureNanos + interval);
         return true;
+    }
+
+    /**
+     * Capture rate to actually use: the configured target, lowered by the performance saver, and
+     * capped at what the encoders have been seen to absorb.
+     */
+    private int effectiveCaptureFps(CapturePipeline active) {
+        int fps = loadMonitor.effectiveFps(config.targetFps);
+        PipelineStats stats = active.stats();
+        return LoadMonitor.sustainableFps(fps, stats.averageEncodeMillis(),
+                config.effectiveEncoderThreads(), stats.encodedFrameCount());
+    }
+
+    /** Capture rate currently in use, for the status display. */
+    public int currentCaptureFps() {
+        CapturePipeline active = pipeline;
+        return active == null ? config.targetFps : effectiveCaptureFps(active);
     }
 
     public VideoFrame acquireFrame() {
@@ -757,7 +774,10 @@ public final class ClipEngine {
         public final int outputWidth;
         public final int outputHeight;
         public final int targetFps;
+        /** Rate capture is actually asking for, after the saver and the encoder-rate cap. */
+        public final int requestedFps;
         public final double measuredFps;
+        public final long timestampAnomalies;
         public final long capturedFrames;
         public final long droppedFrames;
         public final double dropPercent;
@@ -774,6 +794,7 @@ public final class ClipEngine {
 
         Status(Mode mode, boolean bufferEnabled, int bufferSeconds, double bufferedSeconds,
                long bufferBytes, int segments, int outputWidth, int outputHeight, int targetFps,
+               int requestedFps, long timestampAnomalies,
                double measuredFps, long capturedFrames, long droppedFrames, double dropPercent,
                double readbackMillis, double encodeMillis, int backlog, String backend,
                int performanceLevel, String performanceReason, String lastMessage, String freeSpace,
@@ -787,6 +808,8 @@ public final class ClipEngine {
             this.outputWidth = outputWidth;
             this.outputHeight = outputHeight;
             this.targetFps = targetFps;
+            this.requestedFps = requestedFps;
+            this.timestampAnomalies = timestampAnomalies;
             this.measuredFps = measuredFps;
             this.capturedFrames = capturedFrames;
             this.droppedFrames = droppedFrames;
@@ -823,6 +846,8 @@ public final class ClipEngine {
                 current.outWidth,
                 current.outHeight,
                 config.targetFps,
+                active != null ? effectiveCaptureFps(active) : config.targetFps,
+                stats != null ? stats.timestampAnomalyCount() : 0L,
                 stats != null ? stats.measuredCaptureFps() : 0.0,
                 stats != null ? stats.capturedFrameCount() : 0L,
                 stats != null ? stats.droppedFrameCount() : 0L,

@@ -1,5 +1,6 @@
 package com.pcpclip.core.perf;
 
+import com.pcpclip.core.pipeline.PipelineStats;
 import com.pcpclip.core.util.PcpLog;
 
 /**
@@ -141,6 +142,33 @@ public final class LoadMonitor {
     /** H.264 quantiser for the next segment; higher means cheaper and blurrier. */
     public int effectiveH264Qp(int configured) {
         return Math.min(40, configured + level * 3);
+    }
+
+    /**
+     * The highest capture rate the encoders can actually absorb, from their measured cost.
+     *
+     * <p>This is the cheapest optimisation available on a phone: reading a frame out of the GPU
+     * costs the render thread several milliseconds and several megabytes of bus traffic, and
+     * doing that for a frame the encoder will immediately drop is pure waste. Asking for 120 fps
+     * when the encoder can manage 30 does not produce a smoother clip - it produces the same clip
+     * and a worse frame rate in game.
+     *
+     * <p>Returns {@code targetFps} until enough frames have been encoded to trust the average, and
+     * never clamps below 5 fps, so a brief stall cannot strand the capture at zero.
+     *
+     * @param encodeMillis  mean encode cost per frame, from {@link PipelineStats}
+     * @param workers       encoder worker threads
+     * @param encodedFrames how many frames that average is based on
+     */
+    public static int sustainableFps(int targetFps, double encodeMillis, int workers,
+                                     long encodedFrames) {
+        if (encodedFrames < 20L || encodeMillis <= 0.5) {
+            return targetFps;
+        }
+        double perThread = 1000.0 / encodeMillis;
+        // Leave some headroom: running the encoders at exactly 100% means any hiccup drops frames.
+        int sustainable = (int) Math.floor(perThread * Math.max(1, workers) * 0.85);
+        return Math.max(5, Math.min(targetFps, sustainable));
     }
 
     public void reset() {

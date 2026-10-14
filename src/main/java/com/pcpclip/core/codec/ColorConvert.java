@@ -11,6 +11,12 @@ import java.nio.ByteBuffer;
  * hands us bottom-up rows), the crop and scale described by {@link OutputGeometry}, and the colour
  * conversion itself.
  *
+ * <p>The flip happens exactly once, on the output side. Source buffers and {@link OutputGeometry}
+ * rectangles both use the GL convention - row 0 and y 0 are the bottom of the picture - so a
+ * source row index needs no adjustment, while an output row does, because an encoded frame starts
+ * at the top. Flipping on both sides cancels out and silently produces an upside-down video,
+ * which is what the first on-device clips showed; OrientationTests now pins this down.
+ *
  * <p>Each source row is pulled out of the direct buffer with one bulk copy and then indexed on the
  * heap. Reading a direct buffer a byte at a time costs several times more per pixel, which at
  * 720p is the difference between a few milliseconds and tens of milliseconds per frame.
@@ -62,11 +68,12 @@ public final class ColorConvert {
             if (sy >= srcY0 + srcH) {
                 sy = srcY0 + srcH - 1;
             }
-            // Output row 0 is the top of the picture; GL row 0 is the bottom, so flip here.
-            final int sourceRow = sourceHeight - 1 - sy;
+            // The source buffer is already bottom-up, so sy indexes it directly.
+            final int sourceRow = sy;
             if (sourceRow < 0 || sourceRow >= sourceHeight) {
                 continue;
             }
+            // The encoded frame starts at the top, so the destination row is flipped - once.
             final int outRow = outHeight - 1 - (dstY0 + dy);
             if (outRow < 0 || outRow >= outHeight) {
                 continue;
@@ -139,7 +146,9 @@ public final class ColorConvert {
             if (sy >= srcY0 + srcH) {
                 sy = srcY0 + srcH - 1;
             }
-            final int sourceRow = sourceHeight - 1 - sy;
+            // The source buffer is already bottom-up, so sy indexes it directly; only the
+            // destination row is flipped, because an encoded frame starts at the top.
+            final int sourceRow = sy;
             if (sourceRow < 0 || sourceRow >= sourceHeight) {
                 continue;
             }

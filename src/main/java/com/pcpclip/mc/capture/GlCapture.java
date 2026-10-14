@@ -86,6 +86,14 @@ public final class GlCapture {
         return lastCostNanos;
     }
 
+    /** True when blitting would copy the frame to an identical frame. */
+    private static boolean isIdentityBlit(OutputGeometry geometry) {
+        return geometry.srcWidth == geometry.outWidth
+                && geometry.srcHeight == geometry.outHeight
+                && geometry.srcX == 0 && geometry.srcY == 0
+                && !geometry.needsBackgroundFill();
+    }
+
     private Framebuffer sourceFramebuffer() {
         try {
             Framebuffer framebuffer = Minecraft.getMinecraft().getFramebuffer();
@@ -122,6 +130,14 @@ public final class GlCapture {
         if (source == null) {
             blitPathBroken = true;
             return false;
+        }
+        if (isIdentityBlit(geometry)) {
+            // Output matches the framebuffer exactly, with nothing to crop or scale: the blit
+            // would be a full-screen copy that changes nothing. Read the frame where it already
+            // is and save the draw, the second framebuffer and its texture.
+            pathDescription = "direct read, no rescale needed (" + geometry.outWidth + "x"
+                    + geometry.outHeight + ")";
+            return readPixels(frame, geometry.outWidth, geometry.outHeight);
         }
         if (!ensureOwnFramebuffer(geometry.outWidth, geometry.outHeight)) {
             blitPathBroken = true;
@@ -255,22 +271,32 @@ public final class GlCapture {
         if (asyncRequested && !blitPathBroken) {
             PboReadback async = ensureReadback(needed);
             if (async != null && async.usable()) {
-                boolean collected = false;
-                if (async.hasPending() && async.pendingWidth() == width
-                        && async.pendingHeight() == height) {
-                    long pts = async.pendingPtsNanos();
-                    collected = async.collect(destination);
-                    if (collected) {
-                        // The pixels belong to the frame that asked for them, not to this one.
-                        frame.setPtsNanos(pts);
+                // Read this frame's own timestamp before anything can overwrite it: the pixels
+                // being collected belong to the *previous* frame, so the frame object's timestamp
+                // is rewritten below. Re-arming with the rewritten value would freeze every
+                // subsequent timestamp at the first one, which stalls segment rotation and
+                // collapses an export to a single frame.
+                final long thisFramePts = frame.ptsNanos();
+
+                if (async.hasPending()) {
+                    if (async.pendingWidth() != width || async.pendingHeight() != height) {
+                        // The capture size changed while a read was in flight.
+                        async.discardPending();
+                    } else {
+                        long pendingPts = async.pendingPtsNanos();
+                        if (async.collect(destination)) {
+                            frame.setPtsNanos(pendingPts);
+                            async.request(width, height, thisFramePts);
+                            return true;
+                        }
+                        // The collect failed; fall through to a synchronous read so this frame is
+                        // not lost, and do not re-arm - a pending read here would be collected as
+                        // a duplicate of the frame we are about to read synchronously.
                     }
-                }
-                async.request(width, height, frame.ptsNanos());
-                if (collected) {
-                    return true;
-                }
-                if (async.usable()) {
-                    // Nothing to collect yet: this is the pipeline filling, not a failure.
+                } else {
+                    // Nothing in flight: start one and skip this frame. Exactly one frame per
+                    // session is spent priming, which is the cost of never blocking afterwards.
+                    async.request(width, height, thisFramePts);
                     return false;
                 }
             }

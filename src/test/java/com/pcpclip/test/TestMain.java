@@ -27,9 +27,11 @@ public final class TestMain {
         System.out.println();
 
         GeometryTests.run();
+        OrientationTests.run();
         ConfigTests.run();
         SegmentTests.run();
         ExportTests.run();
+        RobustnessTests.run();
         RecordingTests.run();
 
         List<String> failures = TestSupport.failures();

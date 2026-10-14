@@ -97,6 +97,16 @@ final class GeometryTests {
         checkNear(1920.0 / 1080.0, (double) letterboxed.dstWidth / letterboxed.dstHeight, 0.02,
                 "placed rectangle keeps the source ratio");
 
+        startTest("geometry: an identity blit is recognised so it can be skipped");
+        OutputGeometry sameSize = OutputGeometry.compute(1280, 720, 1280, 720, FitMode.CROP);
+        check(sameSize.srcWidth == sameSize.outWidth && sameSize.srcHeight == sameSize.outHeight,
+                "matching sizes need no rescale");
+        check(!sameSize.cropped && !sameSize.needsBackgroundFill(),
+                "and nothing is cropped or padded, so the blit can be skipped entirely");
+        OutputGeometry needsWork = OutputGeometry.compute(2400, 1080, 1280, 720, FitMode.CROP);
+        check(needsWork.srcWidth != needsWork.outWidth,
+                "a phone framebuffer into 720p does need the blit");
+
         startTest("geometry: identity transform for GPU-scaled frames");
         OutputGeometry identity = OutputGeometry.identity(1280, 720);
         checkEquals(1280, identity.srcWidth, "identity source width");

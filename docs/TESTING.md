@@ -11,7 +11,7 @@ Last run on this repository:
 ```
 java 1.8.0_504 on Linux amd64, 4 cpus
 ffprobe available: true
-checks: 1274, failures: 0, time: 40s
+checks: 1319, failures: 0, time: 45s
 ALL TESTS PASSED
 ```
 
@@ -45,6 +45,30 @@ avoids dependencies.
 * Letterboxing adds bars and keeps the source ratio in the placed rectangle.
 * 1080p at 21:9 is exactly 2520x1080; 9:16 rounds to an even 608; match-screen reproduces the
   framebuffer ratio; odd custom sizes round down.
+
+### Orientation (`OrientationTests`)
+
+Added after the first on-device clips came out upside down while every other test passed. Each
+check paints a known colour into a known corner of the *source* buffer, in the GL bottom-up order
+the capture layer really delivers, and insists on finding it in the right corner of the *decoded*
+output:
+
+* RGBA to BGR and RGBA to YUV, at the conversion level;
+* a Motion JPEG frame, decoded back with ImageIO;
+* an H.264 clip, decoded with ffmpeg;
+* a cropped ultrawide frame and a letterboxed frame, including that the bars are where they
+  should be and the picture between them is the right way up.
+
+### Robustness (`RobustnessTests`)
+
+Added after every on-device clip held exactly one frame:
+
+* the capture rate is capped at measured encoder throughput (120 fps asked for, 50 ms/frame on
+  two workers, gives 34) and is not throttled on too little evidence, nor below 5 fps;
+* a segment whose 40 frames all claim the same instant still exports 40 frames, on a synthetic
+  timeline, with the result reporting that the timing was invented - ffprobe confirms the count;
+* feeding the engine 40 frames with a frozen timestamp has all 39 repeats corrected and counted,
+  and the buffer still advances so segments still rotate.
 
 ### Settings (`ConfigTests`)
 

@@ -59,11 +59,34 @@ Nothing below is presented as measured unless it was measured.
 |---|---|---|
 | GL capture (framebuffer blit) | needs a live GL context | direct framebuffer read |
 | GL capture (direct read) | needs a live GL context | nothing below it; capture stops and says so |
-| Asynchronous readback (pixel buffer objects) | needs a driver | self-tests at startup, then synchronous reads |
+| Asynchronous readback (pixel buffer objects) | needs a driver | **off by default**; self-tests, then synchronous reads |
 | FPS cost of recording on a phone | needs a phone | performance saver adapts at runtime |
 | OptiFine interaction | needs the client | no OptiFine classes are touched |
 | Forge event wiring | Forge's jars were unreachable (see [BUILDING.md](BUILDING.md)) | small, stable API surface; see `stubs/java/README.md` |
 | Clip playback in Android apps | needs a phone | MP4 for sharing, AVI for players |
+
+## What the first device clips changed
+
+Two clips captured on a real device (720p Motion JPEG, PojavLauncher) exposed two faults that
+every test here had passed straight over. Both are fixed, and both now have tests that would have
+caught them:
+
+* **Frames came out upside down.** The conversion step flipped vertically on both the source and
+  the destination side, and the two cancelled. Every existing test fed synthetic frames in and
+  read them back out, which proves the pipeline is self-consistent but says nothing about which
+  way up it is. `OrientationTests` now paints a known colour in each corner of the source and
+  insists on finding it in the right corner of the *decoded* output - for Motion JPEG and H.264,
+  cropped and letterboxed.
+* **Each clip held exactly one frame.** The asynchronous readback re-armed itself with a
+  timestamp it had just overwritten, so every frame claimed the same instant. Segment rotation
+  waits on presentation time, so it stopped rotating; the fixed-rate export samples onto a time
+  grid, so a single frame filled the whole grid. Fixed at source, and the pipeline no longer
+  depends on the capture layer being well behaved: a timestamp that does not advance is nudged
+  forward by one frame interval and counted, segments rotate on wall clock as a backstop, and an
+  export whose timestamps never advance writes every frame on a synthetic timeline and says so.
+
+Asynchronous readback is now **off by default** as a result. It is a real saving when it works,
+but it cannot be tested without a device, and correct capture matters more than fast capture.
 
 ## The two findings worth knowing
 
@@ -136,6 +159,17 @@ nothing, and holds no Minecraft state. Conflicts are unlikely, with two predicta
 | Immediate-mode GL | Not used. Drawing goes through Minecraft's `Tessellator`, so it works wherever the game itself works. |
 | Maximum texture size | Queried; an output larger than the limit falls back to the direct-read path. |
 | Screen rotation / resize | The framebuffer size is re-read every frame; a change in encoded size rebuilds the pipeline, and a change in crop alone costs nothing. |
+
+## Crop versus fit, in practice
+
+Cropping to an ultrawide shape removes the top and bottom of the rendered frame, and on a 16:9
+source at 21:9 that is about a quarter of the height - which is where the hotbar and health bar
+sit. Verified against a real capture: a 1280x720 frame cropped to 2520x1080 keeps rows 85 to 634
+and the hotbar is gone.
+
+That is the honest cost of filling an ultrawide frame, not a bug, and the video settings screen
+now says so before you pick it. **Fit with bars** keeps the whole screen including the HUD, at
+the price of black bars. Neither distorts anything.
 
 ## Known limitations
 
