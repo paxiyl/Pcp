@@ -24,6 +24,9 @@ Motion JPEG (ImageIO, q55) (software)
 
 **Settings -> Storage** shows the clip folder, free space, and the size of the buffer cache.
 
+`/pcpclip status` prints the same figures into chat, which is easier to screenshot or copy into a
+bug report than a settings screen.
+
 At startup the log records what the environment can do; that block answers most questions:
 
 ```

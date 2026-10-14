@@ -58,9 +58,14 @@ reused verbatim:
 * `mcp-to-srg.srg` - applied to the compiled mod so it links against the SRG names Forge's
   deobfuscating transformer installs at runtime (ForgeGradle's `reobfJar`).
 
-SpecialSource runs with `--live` and the Minecraft jar on its classpath, so inheritance resolves
-and **overriding** methods are renamed too, not just call sites - `drawScreen` becomes
-`func_73863_a` in `GuiPcpBase` as well as at every call site.
+SpecialSource runs with `--live` and the Minecraft jar, the compiled mod **and the compiled stubs**
+on its classpath, so inheritance resolves and **overriding** methods are renamed too, not just
+call sites - `drawScreen` becomes `func_73863_a` in `GuiPcpBase` as well as at every call site.
+
+The stubs matter for more than compiling: without them on the remapper's classpath, a method
+declared on a Minecraft class but called through a Forge subclass (`ClientCommandHandler`
+inheriting `CommandHandler.registerCommand`) keeps its readable name and the mod dies at init
+with `NoSuchMethodError`. `tools/verify_links.py` fails the build if that happens.
 
 ### The Forge API stubs
 

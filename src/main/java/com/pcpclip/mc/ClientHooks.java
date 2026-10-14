@@ -10,6 +10,7 @@ import com.pcpclip.mc.ui.GuiPcpMain;
 import com.pcpclip.mc.ui.HudOverlay;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -130,6 +131,11 @@ public final class ClientHooks {
         }
         updateContextLabel(mc);
         handleHotkeys(mc);
+
+        GuiScreen requested = PcpClipMod.takeRequestedScreen();
+        if (requested != null) {
+            mc.displayGuiScreen(requested);
+        }
     }
 
     /** Keeps clip names tied to the world or server the footage came from. */

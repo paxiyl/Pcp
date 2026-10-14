@@ -13,6 +13,7 @@ import re, subprocess, sys, zipfile
 from collections import defaultdict
 
 jar_path, srg_jar, javap = sys.argv[1], sys.argv[2], sys.argv[3]
+mapping_path = sys.argv[4] if len(sys.argv) > 4 else None
 
 REFERENCE = re.compile(r"//\s+(Method|Field|InterfaceMethod)\s+([\w/$]+)\.([\w$<>]+):(\S+)")
 DECLARED = re.compile(r"^\s{2}(?:[\w\s]*?)([\w$<>.\[\]]+)\s*(\([^)]*\))?;?\s*$")
@@ -109,6 +110,7 @@ with zipfile.ZipFile(jar_path) as jar:
                    if n.startswith("com/pcpclip/") and n.endswith(".class")]
 
 references = defaultdict(set)
+forge_references = defaultdict(set)
 batch = [name[:-6].replace("/", ".") for name in mod_classes]
 disassembly = subprocess.run(
     [javap, "-p", "-c", "-cp", jar_path] + batch,
@@ -126,6 +128,8 @@ for line in disassembly.stdout.splitlines():
         kind, owner, member, descriptor = match.groups()
         if owner.startswith("net/minecraft/"):
             references[(owner, member, descriptor)].add(current)
+        elif owner.startswith("net/minecraftforge/") and kind != "Field":
+            forge_references[(owner, member, descriptor)].add(current)
 
 checked = 0
 missing = []
@@ -139,6 +143,30 @@ for (owner, member, descriptor), used_by in sorted(references.items()):
     if not resolves(owner, member, descriptor):
         missing.append((owner, member, descriptor, used_by))
 
+# A member declared on a Minecraft class but referenced through a Forge subclass - Forge's
+# ClientCommandHandler inheriting CommandHandler.registerCommand, for instance - only gets
+# remapped if the remapper can see that inheritance. When it cannot, the readable name survives
+# in the bytecode and the mod dies at load with NoSuchMethodError. Nothing above would catch it,
+# because the reference does not name a Minecraft class, so check it here.
+if mapping_path:
+    # Methods only. A name and descriptor together are specific enough to be meaningful, whereas
+    # field names are not: Forge has its own `instance`, `EVENT_BUS` and so on, and the mapping
+    # file carries no descriptors for fields to tell them apart.
+    mcp_methods = set()
+    with open(mapping_path) as mapping:
+        for line in mapping:
+            parts = line.split()
+            if line.startswith("MD: ") and len(parts) >= 5:
+                owner_member, mcp_descriptor = parts[1], parts[2]
+                mcp_methods.add((owner_member.rsplit("/", 1)[1], mcp_descriptor))
+
+    for (owner, member, descriptor), used_by in sorted(forge_references.items()):
+        if (member, descriptor) in mcp_methods:
+            missing.append((owner, member, descriptor, used_by))
+            print("  SUSPICIOUS %s.%s%s looks like an unmapped Minecraft member reached through "
+                  "a Forge type" % (owner, member, descriptor))
+
+print("  Forge method references checked for unmapped inherited members: %d" % len(forge_references))
 print("  distinct Minecraft references checked: %d" % checked)
 print("  Minecraft classes touched: %d" % len({owner for owner, _, _ in references}))
 if missing:

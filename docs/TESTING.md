@@ -115,9 +115,14 @@ Run as the last two steps of `tools/build-jar.sh`:
 * `tools/verify_reobf.py` - the jar holds the mod classes and bundled JCodec, no compile-only
   Forge stubs and no Minecraft classes leaked in, `mcmod.info` is present, enough SRG references
   exist to prove the remap ran, and **no readable Minecraft member name survives** anywhere.
-* `tools/verify_links.py` - every distinct Minecraft member reference in the jar (69 of them
-  across 16 Minecraft classes) is looked up in a real SRG-named Minecraft 1.8.9, walking
-  superclasses and interfaces the way the JVM does. This is the closest available stand-in for
+* `tools/verify_links.py` - every distinct Minecraft member reference in the jar (77 of them
+  across 20 Minecraft classes) is looked up in a real SRG-named Minecraft 1.8.9, walking
+  superclasses and interfaces the way the JVM does. It also flags any *method declared on a
+  Minecraft class but reached through a Forge subclass* that still carries its readable name -
+  the case that bit `ClientCommandHandler.registerCommand`, which a remapper only renames if it
+  can see the inheritance. That one would have loaded the mod and then thrown
+  `NoSuchMethodError` at init; it is now caught at build time, and the check was validated
+  against a deliberately mis-remapped jar. This is the closest available stand-in for
   launching the game: a wrong name or descriptor would appear here as the `NoSuchMethodError` it
   would have become in play. It self-tests first - a fabricated member and a wrong descriptor
   must both fail to resolve - so it cannot pass vacuously.

@@ -55,6 +55,26 @@ dist/pcpclip-1.0.0-1.8.9.jar     drop into .minecraft/mods
 All four appear in Minecraft's own **Controls** screen under *PcpClip*, so they can be rebound -
 including onto PojavLauncher's on-screen buttons, which is how most Android players will use them.
 
+## Chat commands
+
+Everything the hotkeys do, for when typing is easier than finding a key. `/pcp` is an alias.
+
+| Command | Action |
+|---|---|
+| `/pcpclip` | open the settings screen |
+| `/pcpclip clip [seconds]` | save the last N seconds (default: your clip length) |
+| `/pcpclip record` | start a manual recording |
+| `/pcpclip stop` | finish it and save |
+| `/pcpclip pause` / `resume` | pause or resume a recording |
+| `/pcpclip buffer on\|off` | turn instant replay on or off |
+| `/pcpclip status` | captured fps, drops, queue, readback cost, encoder |
+| `/pcpclip clips` | the saved clips (add `chat` to list them in chat instead) |
+| `/pcpclip help` | the same list, in game |
+
+Client-side only, so it never reaches the server: it works in single player, on any multiplayer
+server, and on servers that reject unknown commands. The name is deliberately not `/clip` - a
+short name would shadow a server's own command, since the client gets first refusal.
+
 ## Install
 
 See [docs/INSTALL-POJAV.md](docs/INSTALL-POJAV.md). Short version: Forge 1.8.9 profile in

@@ -6,6 +6,9 @@ import com.pcpclip.core.util.PcpLog;
 import com.pcpclip.mc.ui.HudOverlay;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.command.CommandHandler;
+import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -38,6 +41,12 @@ public class PcpClipMod {
     public static final String VERSION = "1.0.0";
 
     private static PcpClipMod instance;
+    /**
+     * A screen a chat command asked for. Opened on the next client tick rather than immediately:
+     * a command runs while the chat screen is still closing, and swapping screens from inside
+     * that leaves input in a strange state.
+     */
+    private static volatile GuiScreen requestedScreen;
 
     private final Logger logger = LogManager.getLogger(NAME);
     private File configFile;
@@ -102,9 +111,30 @@ public class PcpClipMod {
                 + engine.storage().clipDirectory());
     }
 
+    /** Asks for a screen to be opened on the next client tick. */
+    public static void requestScreen(GuiScreen screen) {
+        requestedScreen = screen;
+    }
+
+    /** Takes the pending screen, if any. Called from the client tick. */
+    static GuiScreen takeRequestedScreen() {
+        GuiScreen screen = requestedScreen;
+        requestedScreen = null;
+        return screen;
+    }
+
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         KeyBindings.register();
+        // A client-side command: it never reaches the server, so it works in single player, on
+        // any server, and on servers that reject unknown commands.
+        //
+        // Deliberately called through CommandHandler rather than through ClientCommandHandler:
+        // registerCommand is declared on Minecraft's class, so naming that class at the call site
+        // is what lets the name be remapped to its runtime form. Going through the Forge subclass
+        // would leave the readable name in the bytecode and fail at load with NoSuchMethodError.
+        CommandHandler commands = ClientCommandHandler.instance;
+        commands.registerCommand(new PcpClipCommand());
         hooks = new ClientHooks(engine, overlay);
         MinecraftForge.EVENT_BUS.register(hooks);
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {

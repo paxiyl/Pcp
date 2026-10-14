@@ -59,7 +59,9 @@ FINAL_JAR="$ROOT/dist/pcpclip-$MOD_VERSION-$MC_VERSION.jar"
 ( cd "$BUILD/stage" && "$JAR" cf "$DEV_JAR" . )
 
 echo "[4/6] remapping MCP names to Forge's runtime SRG names"
-"$JAVA" -cp "$DEV/tools/specialsource.jar:$MC_JAR:$LIBS$BUILD/classes" \
+# The stub classes go on the classpath as well: SpecialSource needs to see that a Forge type
+# extends a Minecraft one before it can remap an inherited member referenced through it.
+"$JAVA" -cp "$DEV/tools/specialsource.jar:$MC_JAR:$LIBS$BUILD/classes:$BUILD/stubs" \
     net.md_5.specialsource.SpecialSource \
     --in-jar "$DEV_JAR" \
     --out-jar "$FINAL_JAR" \
@@ -79,7 +81,7 @@ if [ ! -s "$SRG_JAR" ]; then
       --srg-in "$DEV/out/obf-to-srg.srg" \
       --out-jar "$SRG_JAR" --quiet
 fi
-python3 "$ROOT/tools/verify_links.py" "$FINAL_JAR" "$SRG_JAR" "$DEV/jdk8/bin/javap"
+python3 "$ROOT/tools/verify_links.py" "$FINAL_JAR" "$SRG_JAR" "$DEV/jdk8/bin/javap" "$REOBF_SRG"
 
 echo
 echo "built:"

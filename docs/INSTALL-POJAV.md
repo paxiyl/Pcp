@@ -64,13 +64,14 @@ Keep that block if you ever need to report a problem; it answers most questions 
 
 The rolling buffer ships **off**, so that installing the mod costs nothing until you ask for it.
 
-1. Press **F9** (or bind *Open PcpClip menu* to an on-screen button).
+1. Press **F9** (or bind *Open PcpClip menu* to an on-screen button). No key to spare? Type
+   `/pcpclip` in chat - it opens the same screen, and `/pcpclip buffer on` skips it entirely.
 2. Tap **Instant replay buffer: Off** so it reads **On**.
 3. Set **Buffer** (how much recent gameplay is kept) and **Clip length** (what the save key
    writes). 30 s of each is a good start.
 4. Close the menu. The small blue **BUF** dot means the buffer is live.
-5. Play. When something good happens, press **F6**. A message confirms the save without pausing
-   the game.
+5. Play. When something good happens, press **F6** - or type `/pcpclip clip`. A message confirms
+   the save without pausing the game.
 
 ## 5. Bind the keys to on-screen buttons
 
@@ -80,6 +81,10 @@ four PcpClip actions under *PcpClip*, so:
 * **In Minecraft**: rebind them to keys you have, or
 * **In PojavLauncher's control editor**: add a button and give it the keycode you bound
   (F6-F9 by default). This is the normal way to get a "clip it" button on screen.
+
+If you would rather not bind anything, the chat commands cover the same ground - `/pcpclip clip`
+to save, `/pcpclip record` and `/pcpclip stop` for manual recording, `/pcpclip status` to see
+what is happening. `/pcp` is a shorter alias. See the table in the README.
 
 ## Storage and where clips go
 

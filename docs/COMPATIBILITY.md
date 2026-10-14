@@ -50,6 +50,7 @@ Nothing below is presented as measured unless it was measured.
 | Encoder cost per preset | measured; see [BENCHMARKS.md](BENCHMARKS.md) |
 | The built jar links against real Minecraft | all 69 distinct Minecraft references across 16 classes resolved against an SRG-named 1.8.9 client, with inherited lookup, by `tools/verify_links.py` |
 | The jar is correctly reobfuscated | overridden methods and call sites checked to be SRG names; no readable Minecraft names remain |
+| Inherited members reached through Forge types are remapped | checked, and the check validated against a deliberately mis-remapped jar |
 | No compile-only stubs ship | asserted during the build |
 
 ## Needs a device

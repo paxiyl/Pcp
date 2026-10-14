@@ -28,3 +28,4 @@ Note that `RenderGameOverlayEvent` is deliberately *not* used: the HUD indicator
 the render-tick hook instead, after the frame has been captured, so the indicator never appears
 inside saved clips.
 | `ClientRegistry` | `registerKeyBinding(KeyBinding)` |
+| `ClientCommandHandler` | `instance`, and `registerCommand` inherited from Minecraft's `CommandHandler` |
