@@ -14,8 +14,17 @@ public final class KnockbackObservation {
     public final double horizontalDisplacement;
     /** Peak upward motion seen on the victim right after the hit (blocks/tick). */
     public final double verticalMotion;
-    /** How much separation the hit created between the two players (blocks). */
-    public final double separationGain;
+    /**
+     * The gap the hit opened, in blocks: the victim's displacement along the
+     * away-from-attacker axis over the ticks following contact.
+     *
+     * <p>This replaced an earlier "change in distance between us" measure,
+     * which folded our own movement into the number. Closing while the victim
+     * flew backwards made the two cancel, producing zeroes and wild swings in
+     * equal measure - the noisiest possible input to an estimator, and the
+     * reason confidence used to stall below its own gate.</p>
+     */
+    public final double gapOpened;
     /** Whether the attacker was sprinting on the tick the hit was sent. */
     public final boolean sprintHit;
     /** Ticks between sending the attack and seeing the victim react. */
@@ -23,11 +32,11 @@ public final class KnockbackObservation {
     /** True when we were the attacker, false when we were the victim. */
     public final boolean outgoing;
 
-    public KnockbackObservation(double horizontalDisplacement, double verticalMotion, double separationGain,
+    public KnockbackObservation(double horizontalDisplacement, double verticalMotion, double gapOpened,
                                 boolean sprintHit, int reactionTicks, boolean outgoing) {
         this.horizontalDisplacement = horizontalDisplacement;
         this.verticalMotion = verticalMotion;
-        this.separationGain = separationGain;
+        this.gapOpened = gapOpened;
         this.sprintHit = sprintHit;
         this.reactionTicks = reactionTicks;
         this.outgoing = outgoing;
@@ -35,8 +44,8 @@ public final class KnockbackObservation {
 
     @Override
     public String toString() {
-        return String.format("%s %s h=%.2f v=%.2f sep=%.2f react=%dt",
+        return String.format("%s %s h=%.2f v=%.2f gap=%.2f react=%dt",
                 this.outgoing ? "out" : "in", this.sprintHit ? "sprint" : "walk",
-                this.horizontalDisplacement, this.verticalMotion, this.separationGain, this.reactionTicks);
+                this.horizontalDisplacement, this.verticalMotion, this.gapOpened, this.reactionTicks);
     }
 }

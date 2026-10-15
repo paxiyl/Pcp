@@ -174,15 +174,19 @@ public final class AttackGate {
         }
         boolean valid = target != null && !target.isDead && target.isEntityAlive()
                 && target.worldObj == me.worldObj
-                && me.getDistanceToEntity(target) <= this.settings.effectiveRange() + RELEASE_RANGE_SLACK;
+                && TargetTracker.effectiveGap(me, target)
+                        <= this.settings.effectiveRange() + RELEASE_RANGE_SLACK;
 
         boolean sprinting = me.isSprinting();
-        double distance = target == null ? -1.0D : me.getDistanceToEntity(target);
+        double gap = target == null ? -1.0D : TargetTracker.effectiveGap(me, target);
 
         me.swingItem();
         if (valid) {
             mc.playerController.attackEntity(me, target);
-            this.hits.onAttackSent(target, sprinting, distance, tick);
+            this.hits.onAttackSent(target, sprinting, gap, tick);
+            // The axis the victim should be pushed along, for measuring how
+            // much gap the hit opens.
+            this.hits.setAttackAxis(target.posX - me.posX, target.posZ - me.posZ);
         }
         this.firedCount++;
     }
@@ -197,7 +201,7 @@ public final class AttackGate {
             return;
         }
         snapshot.hasTarget = true;
-        snapshot.distance = me.getDistanceToEntity(entity);
+        snapshot.distance = TargetTracker.effectiveGap(me, entity);
         snapshot.selfSprinting = me.isSprinting();
         snapshot.selfHurtTime = me.hurtTime;
         snapshot.attackKeyHeld = mc.gameSettings.keyBindAttack.isKeyDown();

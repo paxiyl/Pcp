@@ -37,6 +37,9 @@ public final class HitObserver {
     private int attackTargetId = -1;
     private boolean attackSprinting;
     private double attackDistance = -1.0D;
+    /** Unit vector from us to the target when the attack went out. */
+    private double attackAxisX;
+    private double attackAxisZ;
 
     // --- confirmed hits ---
     private long ourHitTick = -1L;
@@ -61,6 +64,8 @@ public final class HitObserver {
     private double outStartZ;
     private double outPeakMotionY;
     private int outReactionTicks;
+    private double outAxisX;
+    private double outAxisZ;
 
     // --- incoming measurement in flight ---
     private boolean measuringIn;
@@ -88,6 +93,21 @@ public final class HitObserver {
         this.attackTargetId = target == null ? -1 : target.getEntityId();
         this.attackSprinting = sprinting;
         this.attackDistance = distance;
+        this.attackAxisX = 1.0D;
+        this.attackAxisZ = 0.0D;
+    }
+
+    /**
+     * Records the knockback axis for the attack that just went out. Kept
+     * separate from {@link #onAttackSent} so the gate does not need to know how
+     * the axis is derived.
+     */
+    public void setAttackAxis(double axisX, double axisZ) {
+        double length = Math.sqrt(axisX * axisX + axisZ * axisZ);
+        if (length > 1.0E-6D) {
+            this.attackAxisX = axisX / length;
+            this.attackAxisZ = axisZ / length;
+        }
     }
 
     public void reset(String why) {
@@ -151,9 +171,11 @@ public final class HitObserver {
         // Confirmation of our own attack.
         if (this.attackTick >= 0L && target.getEntityId() == this.attackTargetId) {
             if (tick - this.attackTick > CONFIRM_WINDOW) {
+                brain.recordReachSample(this.attackDistance, false);
                 this.attackTick = -1L;
                 this.unconfirmedAttacks++;
             } else if (hurtRose || healthDropped) {
+                brain.recordReachSample(this.attackDistance, true);
                 this.ourHitTick = tick;
                 this.ourHitWasSprint = this.attackSprinting;
                 this.outReactionTicks = (int) (tick - this.attackTick);
@@ -166,6 +188,8 @@ public final class HitObserver {
                 this.outStartX = target.posX;
                 this.outStartZ = target.posZ;
                 this.outPeakMotionY = target.motionY;
+                this.outAxisX = this.attackAxisX;
+                this.outAxisZ = this.attackAxisZ;
                 brain.latency().recordHitResponse(this.outReactionTicks);
                 this.attackTick = -1L;
             }
@@ -179,11 +203,14 @@ public final class HitObserver {
                 double dx = target.posX - this.outStartX;
                 double dz = target.posZ - this.outStartZ;
                 double horizontal = Math.sqrt(dx * dx + dz * dz);
-                double separation = this.attackDistance > 0.0D
-                        ? me.getDistanceToEntity(target) - this.attackDistance
-                        : 0.0D;
+                // The gap a hit opens is the victim's travel along the
+                // away-from-us axis. Measuring the change in distance between
+                // us instead folded our own approach into the number, so
+                // closing while they flew back cancelled out and the samples
+                // were mostly noise.
+                double axial = dx * this.outAxisX + dz * this.outAxisZ;
                 brain.recordKnockback(new KnockbackObservation(horizontal, this.outPeakMotionY,
-                        Math.max(0.0D, separation), this.ourHitWasSprint, this.outReactionTicks, true));
+                        Math.max(0.0D, axial), this.ourHitWasSprint, this.outReactionTicks, true));
                 this.measuringOut = false;
             }
         }
@@ -217,7 +244,7 @@ public final class HitObserver {
                 this.inStartX = me.posX;
                 this.inStartZ = me.posZ;
                 this.inPeakMotionY = me.motionY;
-                this.inStartDistance = target == null ? -1.0D : me.getDistanceToEntity(target);
+                this.inStartDistance = target == null ? -1.0D : TargetTracker.effectiveGap(me, target);
                 // Attribution assumption: if we have an opponent, their sprint
                 // state is the best available guess at what kind of hit that was.
                 this.inAttackerSprinting = target != null && target.isSprinting();
@@ -232,7 +259,7 @@ public final class HitObserver {
                 double dz = me.posZ - this.inStartZ;
                 double horizontal = Math.sqrt(dx * dx + dz * dz);
                 double separation = (target != null && this.inStartDistance > 0.0D)
-                        ? me.getDistanceToEntity(target) - this.inStartDistance
+                        ? TargetTracker.effectiveGap(me, target) - this.inStartDistance
                         : 0.0D;
                 brain.recordKnockback(new KnockbackObservation(horizontal, this.inPeakMotionY,
                         Math.max(0.0D, separation), this.inAttackerSprinting, -1, false));

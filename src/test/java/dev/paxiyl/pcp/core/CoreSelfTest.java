@@ -43,6 +43,10 @@ public final class CoreSelfTest {
         testSuspendAndDisableRelease();
         testFightSimulationInvariants();
         testMovementControllerLifecycle();
+        testGeometry();
+        testReachEstimator();
+        testPooledConfidence();
+        testPresets();
 
         System.out.println();
         System.out.println("checks run: " + checks + ", failures: " + failures.size());
@@ -1165,6 +1169,214 @@ public final class CoreSelfTest {
         s.latencyUncertaintyTicks = random.nextDouble() * 4.0D;
         s.latencyReliable = random.nextInt(5) > 0;
         return s;
+    }
+
+    // ------------------------------------------------------------------
+    // Gap arithmetic
+    // ------------------------------------------------------------------
+
+    private static void testGeometry() {
+        section("gap arithmetic");
+        // A player: 0.6 wide, 0.1 collision border -> 0.4 of surface.
+        near("flat ground subtracts the hitbox surface",
+                2.6D, Geometry.effectiveGap(3.0D, 0.0D, 0.6D, 0.1D), 1.0E-9D);
+        near("touching hitboxes read as zero, not negative",
+                0.0D, Geometry.effectiveGap(0.3D, 0.0D, 0.6D, 0.1D), 1.0E-9D);
+        check("gap is never negative", Geometry.effectiveGap(0.0D, 0.0D, 0.6D, 0.1D) >= 0.0D);
+
+        // A jump of about a block must not be read as the gap growing: that was
+        // the old 3D measure's worst failure, since 1.8 PvP jumps constantly.
+        near("a one-block height difference costs no reach",
+                2.6D, Geometry.effectiveGap(3.0D, 1.0D, 0.6D, 0.1D), 1.0E-9D);
+        check("a large height difference does cost reach",
+                Geometry.effectiveGap(3.0D, 2.5D, 0.6D, 0.1D) > 2.6D);
+        near("height is symmetric",
+                Geometry.effectiveGap(3.0D, 2.5D, 0.6D, 0.1D),
+                Geometry.effectiveGap(3.0D, -2.5D, 0.6D, 0.1D), 1.0E-9D);
+
+        // A wider target is reachable from further away.
+        check("a wider hitbox is easier to reach",
+                Geometry.effectiveGap(3.0D, 0.0D, 1.4D, 0.1D)
+                        < Geometry.effectiveGap(3.0D, 0.0D, 0.6D, 0.1D));
+
+        // The old measure, for comparison: centre-to-centre in 3D.
+        double old3d = Math.sqrt(3.0D * 3.0D + 1.0D);
+        check("the old measure really did over-report", old3d - 2.6D > 0.5D);
+    }
+
+    // ------------------------------------------------------------------
+    // Reach learning
+    // ------------------------------------------------------------------
+
+    private static void testReachEstimator() {
+        section("reach estimation");
+        ReachEstimator reach = new ReachEstimator();
+        check("no estimate before any hits", !reach.hasEstimate());
+        near("no estimate reports -1", -1.0D, reach.estimate(), 1.0E-9D);
+        check("the description says it is still learning", reach.describe().contains("learning"));
+        near("no confidence without samples", 0.0D, reach.confidence(), 1.0E-9D);
+
+        // Hits land anywhere up to a true reach of 3.0; most are closer.
+        double[] gaps = {1.2D, 2.9D, 2.1D, 2.95D, 1.8D, 2.4D, 2.99D, 2.2D,
+                         1.5D, 2.7D, 2.85D, 2.0D, 2.6D, 1.9D};
+        for (int i = 0; i < gaps.length; i++) {
+            reach.recordHit(gaps[i]);
+        }
+        check("an estimate appears once there is evidence", reach.hasEstimate());
+        check("the estimate lands near the true boundary",
+                Math.abs(reach.estimate() - 3.0D) < 0.25D);
+        check("the estimate is not the median of the bulk",
+                reach.estimate() > reach.medianHitGap() + 0.3D);
+        check("confidence is reported", reach.confidence() > 0.0D);
+        check("the description says it is measured", reach.describe().contains("msr"));
+
+        // One absurd sample must not set the range.
+        reach.recordHit(7.5D);
+        check("a single outlier does not stretch the estimate", reach.estimate() <= 3.1D);
+
+        // Implausible values are rejected outright.
+        int before = reach.hitSamples();
+        reach.recordHit(-1.0D);
+        reach.recordHit(0.0D);
+        reach.recordHit(99.0D);
+        check("implausible gaps are rejected", reach.hitSamples() == before);
+
+        // Whiffs are counted but never set the number.
+        double estimateBefore = reach.estimate();
+        for (int i = 0; i < 10; i++) {
+            reach.recordWhiff(0.5D);
+        }
+        near("whiffs do not move the estimate", estimateBefore, reach.estimate(), 1.0E-9D);
+        check("whiffs are counted for diagnostics", reach.whiffs() == 10);
+
+        // Clamped to the same plausible band as the manual setting.
+        ReachEstimator extreme = new ReachEstimator();
+        for (int i = 0; i < 12; i++) {
+            extreme.recordHit(0.2D);
+        }
+        check("estimate cannot go below the plausible floor", extreme.estimate() >= 2.0D);
+
+        // Persistence round trip.
+        ReachEstimator restored = new ReachEstimator();
+        restored.fromCsv(reach.toCsv());
+        near("reach survives a round trip", reach.estimate(), restored.estimate(), 0.01D);
+        restored.fromCsv("1.0,bad,2.0");
+        check("corrupt reach entries are skipped", restored.hasEstimate());
+
+        reach.reset();
+        check("reset clears the estimate", !reach.hasEstimate());
+        check("reset clears whiffs", reach.whiffs() == 0);
+    }
+
+    // ------------------------------------------------------------------
+    // Pooled confidence
+    // ------------------------------------------------------------------
+
+    /**
+     * The defect this guards against: confidence used to be read off whichever
+     * bucket matched the player's most recent hit, so a well-measured profile
+     * reported almost nothing whenever that bucket happened to be the empty
+     * one. It read as "this mod never learns".
+     */
+    private static void testPooledConfidence() {
+        section("pooled confidence");
+        KnockbackProfile kb = new KnockbackProfile();
+        near("nothing learned means no confidence", 0.0D, kb.overallConfidence(), 1.0E-9D);
+        check("no pooled samples yet", kb.pooledSampleCount() == 0);
+
+        // Train only sprint hits, as a sprinting player would.
+        train(kb, 14, 1.90D, true);
+        check("sprint bucket is confident", kb.confidence(true) > 0.3D);
+        near("walk bucket on its own knows nothing", 0.0D, kb.confidence(false), 1.0E-9D);
+        check("pooled confidence reflects the sprint samples", kb.overallConfidence() > 0.3D);
+        check("pooled count includes every sample", kb.pooledSampleCount() == 14);
+
+        // The decisive case: a single walk hit must not collapse confidence.
+        double before = kb.overallConfidence();
+        kb.record(new KnockbackObservation(1.0D, 0.36D, 0.80D, false, 1, true));
+        double after = kb.overallConfidence();
+        check("one walk hit does not wipe out confidence", after > before * 0.6D);
+        check("the per-bucket walk number is still low on its own",
+                kb.confidence(false) < kb.overallConfidence());
+
+        // The overlay string must report the pooled numbers, not the bucket's.
+        String described = kb.describe(false);
+        check("the summary shows the pooled sample count", described.contains("(15)"));
+
+        // A sparse noisy bucket must not drag a dense clean one down to nothing.
+        KnockbackProfile mixed = new KnockbackProfile();
+        train(mixed, 20, 2.00D, true);
+        mixed.record(new KnockbackObservation(9.0D, 0.9D, 8.0D, false, 1, true));
+        check("one wild sample in a sparse bucket is survivable",
+                mixed.overallConfidence() > 0.3D);
+    }
+
+    // ------------------------------------------------------------------
+    // Presets
+    // ------------------------------------------------------------------
+
+    private static void testPresets() {
+        section("presets");
+        CoreSettings s = defaults();
+        check("balanced is the default", s.preset() == CoreSettings.Preset.BALANCED);
+
+        s.applyPreset(CoreSettings.Preset.SAFE);
+        check("safe is recorded", s.preset() == CoreSettings.Preset.SAFE);
+        int safeTap = s.maxTapTicks();
+        int safeCooldown = s.actionCooldownTicks();
+        double safeConfidence = s.minConfidence();
+        int safeHold = s.maxTradeDelayTicks();
+
+        s.applyPreset(CoreSettings.Preset.AGGRESSIVE);
+        check("aggressive taps for longer", s.maxTapTicks() > safeTap);
+        check("aggressive waits less between actions", s.actionCooldownTicks() < safeCooldown);
+        check("aggressive acts on less evidence", s.minConfidence() < safeConfidence);
+        check("aggressive holds attacks longer", s.maxTradeDelayTicks() > safeHold);
+
+        s.applyPreset(CoreSettings.Preset.BALANCED);
+        check("balanced sits between the two",
+                s.maxTapTicks() > safeTap && s.minConfidence() < safeConfidence);
+
+        // Every preset must leave a self-consistent configuration.
+        CoreSettings.Preset[] all = CoreSettings.Preset.values();
+        for (int i = 0; i < all.length; i++) {
+            CoreSettings probe = defaults();
+            probe.applyPreset(all[i]);
+            check(all[i].id() + ": tap bounds ordered", probe.minTapTicks() <= probe.maxTapTicks());
+            check(all[i].id() + ": bands ordered",
+                    probe.dangerCloseFraction() < probe.comboBandFraction());
+            check(all[i].id() + ": hold within the hard cap", probe.maxTradeDelayTicks() <= 6);
+            check(all[i].id() + ": taps within the hard cap", probe.maxTapTicks() <= 10);
+            check(all[i].id() + ": confidence in range",
+                    probe.minConfidence() >= 0.0D && probe.minConfidence() <= 0.95D);
+        }
+
+        check("names parse", CoreSettings.parsePreset("safe") == CoreSettings.Preset.SAFE);
+        check("parsing ignores case and padding",
+                CoreSettings.parsePreset("  AGGRESSIVE ") == CoreSettings.Preset.AGGRESSIVE);
+        check("unknown names are rejected", CoreSettings.parsePreset("turbo") == null);
+        check("null is rejected", CoreSettings.parsePreset(null) == null);
+
+        // Auto-learned reach takes precedence, and falls back cleanly.
+        CoreSettings r = defaults();
+        check("auto reach is on by default", r.autoReach);
+        near("with nothing learned the configured value is used",
+                r.configuredRange(), r.effectiveRange(), 1.0E-9D);
+        check("not using a learned range yet", !r.usingLearnedRange());
+        r.setLearnedRange(2.85D);
+        near("a learned range takes over", 2.85D, r.effectiveRange(), 1.0E-9D);
+        check("and says so", r.usingLearnedRange());
+        near("bands follow the learned range", 2.85D * r.comboBandFraction(),
+                r.comboBandDistance(), 1.0E-9D);
+        r.autoReach = false;
+        near("turning it off restores the configured value",
+                r.configuredRange(), r.effectiveRange(), 1.0E-9D);
+        r.autoReach = true;
+        r.setLearnedRange(-1.0D);
+        near("dropping the measurement restores the configured value",
+                r.configuredRange(), r.effectiveRange(), 1.0E-9D);
+        r.setLearnedRange(99.0D);
+        check("a learned range is clamped too", r.effectiveRange() <= 4.5D);
     }
 
     // ------------------------------------------------------------------

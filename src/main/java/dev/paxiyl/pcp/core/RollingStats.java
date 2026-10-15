@@ -129,6 +129,78 @@ public final class RollingStats {
         return this.cachedMax;
     }
 
+    /**
+     * Median of the retained window.
+     *
+     * <p>Sorts a copy, so it is O(n log n) over a window of at most a few
+     * dozen values. Called on sample arrival and on overlay composition, never
+     * per frame.</p>
+     */
+    public double median() {
+        if (this.count == 0) {
+            return 0.0D;
+        }
+        double[] copy = new double[this.count];
+        for (int i = 0; i < this.count; i++) {
+            copy[i] = get(i);
+        }
+        java.util.Arrays.sort(copy);
+        int mid = copy.length / 2;
+        return copy.length % 2 == 1 ? copy[mid] : (copy[mid - 1] + copy[mid]) / 2.0D;
+    }
+
+    /** Value at the given percentile of the window, {@code p} in [0,1]. */
+    public double percentile(double p) {
+        if (this.count == 0) {
+            return 0.0D;
+        }
+        double[] copy = new double[this.count];
+        for (int i = 0; i < this.count; i++) {
+            copy[i] = get(i);
+        }
+        java.util.Arrays.sort(copy);
+        double clamped = clamp(p, 0.0D, 1.0D);
+        int index = (int) Math.round(clamped * (copy.length - 1));
+        return copy[index];
+    }
+
+    /**
+     * Median absolute deviation, scaled to be comparable with a standard
+     * deviation.
+     *
+     * <p>Combat samples contain genuine outliers that are not noise in the
+     * statistical sense - a hit landed while the victim was already falling, a
+     * hit someone else also landed, a hit absorbed by an opponent walking into
+     * it. A standard deviation squares those and lets one of them dominate the
+     * window, which in turn drives any spread-based confidence to zero. The MAD
+     * ignores them, so confidence reflects the bulk of the samples.</p>
+     */
+    public double robustSpread() {
+        if (this.count < 2) {
+            return 0.0D;
+        }
+        double med = median();
+        double[] deviations = new double[this.count];
+        for (int i = 0; i < this.count; i++) {
+            deviations[i] = Math.abs(get(i) - med);
+        }
+        java.util.Arrays.sort(deviations);
+        int mid = deviations.length / 2;
+        double mad = deviations.length % 2 == 1
+                ? deviations[mid]
+                : (deviations[mid - 1] + deviations[mid]) / 2.0D;
+        return mad * 1.4826D;
+    }
+
+    /** Robust analogue of the coefficient of variation, based on the MAD. */
+    public double robustCv() {
+        double med = Math.abs(median());
+        if (med < 1.0E-4D) {
+            return 0.0D;
+        }
+        return robustSpread() / med;
+    }
+
     /** Coefficient of variation; 0 when the mean is ~0 to avoid blowing up. */
     public double coefficientOfVariation() {
         double mean = Math.abs(mean());
@@ -164,14 +236,27 @@ public final class RollingStats {
      * server-side rule is always provisional.
      */
     public double confidence(int saturation) {
-        if (this.count == 0) {
+        return confidenceFrom(this.count, robustCv(), saturation);
+    }
+
+    /**
+     * The confidence formula, in one place so pooled and per-window confidence
+     * cannot drift apart.
+     *
+     * <p>The spread term uses a coefficient of 1.0 rather than the 2.0 this
+     * started with. Measured against a simulated duel, 2.0 combined with a
+     * standard-deviation spread held confidence under its own default gate for
+     * most of a fight, which meant the modules that depend on it never ran.</p>
+     */
+    public static double confidenceFrom(int sampleCount, double cv, int saturation) {
+        if (sampleCount <= 0) {
             return 0.0D;
         }
         if (saturation < 1) {
             saturation = 1;
         }
-        double sampleTerm = (double) this.count / (double) (this.count + saturation);
-        double spreadTerm = 1.0D / (1.0D + 2.0D * coefficientOfVariation());
+        double sampleTerm = (double) sampleCount / (double) (sampleCount + saturation);
+        double spreadTerm = 1.0D / (1.0D + Math.max(0.0D, cv));
         return clamp(sampleTerm * spreadTerm, 0.0D, 0.95D);
     }
 

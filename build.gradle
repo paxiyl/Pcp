@@ -114,10 +114,23 @@ task integrationTest(type: JavaExec, dependsOn: 'testClasses') {
     main = 'dev.paxiyl.pcp.ForgeIntegrationSelfTest'
 }
 
+// Drives the decision core through a simulated duel with 1.8.9-like movement
+// and knockback, and asserts that the system reaches a usable state: that
+// confidence clears its own gate, that the learned reach matches the reach the
+// simulation enforces, that the gap metric is unbiased, and that both movement
+// controllers actually fire. Unit tests check each piece in isolation; this
+// checks that the whole thing works during a fight.
+task calibrationTest(type: JavaExec, dependsOn: 'testClasses') {
+    group = 'verification'
+    description = 'Runs the simulated-duel calibration checks.'
+    classpath = sourceSets.test.runtimeClasspath
+    main = 'dev.paxiyl.pcp.sim.CalibrationTest'
+}
+
 task selfTest {
     group = 'verification'
     description = 'Runs every self test.'
-    dependsOn 'coreTest', 'integrationTest'
+    dependsOn 'coreTest', 'integrationTest', 'calibrationTest'
 }
 
 build.dependsOn selfTest

@@ -148,13 +148,18 @@ public final class ForgeIntegrationSelfTest {
         check("cooldown default", settings.actionCooldownTicks() == 6);
         check("flip guard default", settings.directionFlipGuardTicks() == 8);
         check("trade hold default", settings.maxTradeDelayTicks() == 3);
-        near("effective range default", 3.0D, settings.effectiveRange(), 1.0E-6D);
+        near("effective range default", 3.0D, settings.configuredRange(), 1.0E-6D);
+        check("configured range is in use until something is measured",
+                !settings.usingLearnedRange());
         near("combo band default", 0.72D, settings.comboBandFraction(), 1.0E-6D);
         near("danger close default", 0.55D, settings.dangerCloseFraction(), 1.0E-6D);
         check("prediction default", settings.predictionTicks() == 3);
         near("max target distance default", 7.0D, settings.maxTargetDistance(), 1.0E-6D);
         near("learning rate default", 0.25D, settings.learningRate(), 1.0E-6D);
-        near("min confidence default", 0.35D, settings.minConfidence(), 1.0E-6D);
+        near("min confidence default", 0.25D, settings.minConfidence(), 1.0E-6D);
+        check("auto-learn reach default on", settings.autoReach);
+        check("balanced preset by default",
+                settings.preset() == dev.paxiyl.pcp.core.CoreSettings.Preset.BALANCED);
         check("target timeout default", settings.targetTimeoutTicks() == 40);
         check("stuck guard default", settings.stateStuckTicks() == 120);
         check("players only default", config.targetPlayersOnly);
@@ -187,7 +192,7 @@ public final class ForgeIntegrationSelfTest {
         check("max tap persisted", reread.maxTapTicks() == 5);
         check("cooldown persisted", reread.actionCooldownTicks() == 9);
         check("trade hold persisted", reread.maxTradeDelayTicks() == 1);
-        near("range persisted", 3.25D, reread.effectiveRange(), 1.0E-6D);
+        near("range persisted", 3.25D, reread.configuredRange(), 1.0E-6D);
         near("learning rate persisted", 0.6D, reread.learningRate(), 1.0E-6D);
         near("min confidence persisted", 0.5D, reread.minConfidence(), 1.0E-6D);
         check("prediction persisted", reread.predictionTicks() == 4);
@@ -218,7 +223,7 @@ public final class ForgeIntegrationSelfTest {
         CoreSettings loaded = new CoreSettings();
         new PcpConfig(loaded).load(file);
 
-        check("absurd range clamped", loaded.effectiveRange() <= 4.5D);
+        check("absurd range clamped", loaded.configuredRange() <= 4.5D);
         check("absurd tap length clamped", loaded.maxTapTicks() <= 10);
         check("absurd attack hold clamped", loaded.maxTradeDelayTicks() <= 6);
         check("absurd confidence clamped", loaded.minConfidence() <= 0.95D);

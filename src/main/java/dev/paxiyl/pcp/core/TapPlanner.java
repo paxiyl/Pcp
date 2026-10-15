@@ -64,20 +64,19 @@ public final class TapPlanner {
             return this.plan;
         }
 
-        // Two different questions, two different numbers. A W-tap is a reaction
-        // to the hit we just landed, so it is gated on confidence in that hit
-        // type. An S-tap is about spacing in general, so it is gated on the
-        // best confidence the profile has in anything.
-        double hitConfidence = kb.confidence(s.lastHitWasSprint);
-        double spacingConfidence = kb.overallConfidence();
+        // Both gates use the pooled confidence: the question being asked is
+        // "do we understand knockback on this server", and that is answered by
+        // every sample, not only by samples of the hit type we happened to land
+        // last. Per-bucket numbers still supply the estimated magnitudes below.
+        double confidence = kb.overallConfidence();
 
-        MovementPlan wtap = planWTap(s, cfg, kb, state, hitConfidence,
-                hitConfidence >= cfg.minConfidence());
+        MovementPlan wtap = planWTap(s, cfg, kb, state, confidence,
+                confidence >= cfg.minConfidence());
         if (wtap != null) {
             return wtap;
         }
-        MovementPlan stap = planSTap(s, cfg, kb, state, zone, spacingConfidence,
-                spacingConfidence >= cfg.minConfidence());
+        MovementPlan stap = planSTap(s, cfg, kb, state, zone, confidence,
+                confidence >= cfg.minConfidence());
         if (stap != null) {
             return stap;
         }
@@ -116,7 +115,10 @@ public final class TapPlanner {
         }
 
         double separation = kb.separationGain(s.lastHitWasSprint);
-        if (confident && separation < WTAP_MIN_SEPARATION) {
+        // Only skip on a value that was actually measured for this hit type;
+        // skipping on a prior-dominated number would disable W-tap on a server
+        // we have barely observed.
+        if (confident && kb.isMeasured(s.lastHitWasSprint) && separation < WTAP_MIN_SEPARATION) {
             // Measured knockback here is tiny: tapping would interrupt a combo
             // that is already working.
             this.plan.clear(String.format("no tap: sep %.2f measured low", separation));

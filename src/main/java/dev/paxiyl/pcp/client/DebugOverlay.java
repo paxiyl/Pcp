@@ -21,7 +21,7 @@ import net.minecraft.client.renderer.GlStateManager;
  */
 public final class DebugOverlay extends Gui {
 
-    private static final int MAX_LINES = 9;
+    private static final int MAX_LINES = 11;
     private static final int BG_COLOUR = 0x80000000;
     private static final int TEXT_COLOUR = 0xFFE0E0E0;
     private static final int LINE_HEIGHT = 10;

@@ -11,6 +11,7 @@ import dev.paxiyl.pcp.core.KnockbackProfile;
 import dev.paxiyl.pcp.core.LatencyModel;
 import dev.paxiyl.pcp.core.MoveAction;
 import dev.paxiyl.pcp.core.MovementPlan;
+import dev.paxiyl.pcp.core.ReachEstimator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.util.ChatComponentText;
@@ -179,7 +180,7 @@ public final class PcpClient {
 
         if (this.config.persistProfiles && this.tick - this.lastProfileSaveTick > PROFILE_SAVE_INTERVAL_TICKS) {
             this.lastProfileSaveTick = this.tick;
-            this.profiles.save(this.brain.knockback(), this.serverKey);
+            this.profiles.save(this.brain.knockback(), this.brain.reach(), this.serverKey);
         }
 
         composeOverlay(mc, null);
@@ -325,21 +326,24 @@ public final class PcpClient {
         this.serverKey = ProfileStore.serverKey(mc);
         this.brain.knockback().setServerKey(this.serverKey);
         if (this.config.persistProfiles) {
-            this.profiles.load(this.brain.knockback(), this.serverKey);
+            this.profiles.load(this.brain.knockback(), this.brain.reach(), this.serverKey);
         }
         this.lastProfileSaveTick = this.tick;
     }
 
     public void saveProfile() {
         if (this.config.persistProfiles && this.profileLoaded) {
-            this.profiles.save(this.brain.knockback(), this.serverKey);
+            this.profiles.save(this.brain.knockback(), this.brain.reach(), this.serverKey);
         }
     }
 
     /** Clears the learned profile for this server, on disk as well. */
+    /** Clears everything learned for this server: knockback and reach alike. */
     public void resetLearnedProfile() {
         this.brain.knockback().reset();
         this.brain.knockback().setServerKey(this.serverKey);
+        this.brain.reach().reset();
+        this.settings.setLearnedRange(-1.0D);
         this.profiles.delete(this.serverKey);
     }
 
@@ -390,6 +394,10 @@ public final class PcpClient {
                 lat.hitResponseTicks() < 0.0D ? "n/a" : String.format("%.1ft msr", lat.hitResponseTicks())));
         this.overlay.add(" opp " + trim(lat.describeOpponentLatency(), 44));
         this.overlay.add(" kb  " + kb.describe(sprintKind) + (kb.regimeChangeSeen() ? " !chg" : ""));
+        ReachEstimator reach = this.brain.reach();
+        this.overlay.add(" rch " + reach.describe()
+                + (this.settings.usingLearnedRange() ? " [in use]" : " [cfg "
+                        + String.format("%.2f", this.settings.configuredRange()) + "]"));
 
         this.overlay.add(" act " + this.movement.activeAction().label()
                 + (this.movement.remainingTicks() > 0 ? ("/" + this.movement.remainingTicks() + "t") : "")

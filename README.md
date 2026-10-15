@@ -15,7 +15,24 @@ which is also what makes it safe under **PojavLauncher**.
 
 ---
 
-## 1. What it does
+## 1. Set it up in one step
+
+```
+/pcp preset balanced
+```
+
+That is the whole setup. The preset sets every timing number, and the attack
+range - the one setting that skews everything else and that nobody can read off
+the screen - is **measured from where your hits actually land** rather than
+configured. `safe` acts rarely and only on strong evidence; `aggressive` acts
+sooner on less; `balanced` is the default. Everything else in section 5 is there
+if you want it, not because you need it.
+
+If it feels like it is doing nothing, turn on the overlay (`J` or
+`/pcp overlay`) and read the `rch` and `kb` lines. They tell you exactly what has
+been measured and whether confidence has cleared its gate.
+
+## 2. What it does
 
 | Module | Behaviour |
 | --- | --- |
@@ -39,7 +56,7 @@ which is also what makes it safe under **PojavLauncher**.
 
 ---
 
-## 2. Build
+## 3. Build
 
 Requires **JDK 8** (ForgeGradle 2.x will not run on a modern JDK) and network
 access to `maven.minecraftforge.net`, `libraries.minecraft.net` and Mojang's
@@ -94,7 +111,7 @@ Maven repositories.
 
 ---
 
-## 3. Install
+## 4. Install
 
 ### Desktop
 
@@ -132,7 +149,7 @@ Things that were done specifically with Pojav in mind:
 
 ---
 
-## 4. Controls
+## 5. Controls
 
 | Key (default) | Function |
 | --- | --- |
@@ -149,9 +166,11 @@ All keys are rebindable in the vanilla Controls screen, under "PCP Adaptive Spac
 
 ```
 /pcp                       status summary
+/pcp preset <safe|balanced|aggressive>   set every timing number at once
+/pcp autoreach [on|off]    learn the attack range from your own hits
 /pcp on | off              master switch
 /pcp wtap|stap|trade|spacing|overlay  [on|off|toggle]
-/pcp reach <blocks>        effective range estimate for this server (2.0-4.5)
+/pcp reach <blocks>        manual range; used only when autoreach is off
 /pcp learn <0.05-1.0>      learning aggressiveness
 /pcp conf <0-0.95>         confidence required for corrections
 /pcp taps <min> <max>      tap length bounds, in ticks
@@ -164,7 +183,7 @@ All keys are rebindable in the vanilla Controls screen, under "PCP Adaptive Spac
 
 ---
 
-## 5. Configuration guide
+## 6. Configuration guide
 
 Config file: `config/pcp.cfg`. Every value is clamped on load, so a hand-edited
 file cannot push the controller out of safe bounds. Learned profiles live in
@@ -179,6 +198,7 @@ file cannot push the controller out of safe bounds. Learned profiles live in
 | `sTapAssist` | `true` | Allow brief backward spacing corrections. |
 | `tradeTimingAssist` | `true` | Allow holding a requested attack for a few ticks. |
 | `spacingAssist` | `true` | Enable the spacing model that drives S-taps. |
+| `preset` | `balanced` | Which preset was last applied. Applying one writes the individual values below, which stay the source of truth. |
 | `targetPlayersOnly` | `true` | Only other players count as opponents. |
 | `chatFeedback` | `true` | One-line chat confirmations on toggles. |
 
@@ -196,7 +216,8 @@ file cannot push the controller out of safe bounds. Learned profiles live in
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `effectiveRange` | `3.0` | **Per-server** effective attack range estimate, in blocks. Vanilla 1.8.9 resolves player hits at roughly 3.0, but server software and lag compensation move the practical value — tune this per server. |
+| `autoLearnReach` | `true` | Measure the attack range from where hits actually land, and prefer it over the value below. Leave this on. |
+| `effectiveRange` | `3.0` | Manual fallback range in blocks, used only when `autoLearnReach` is off. Now measured against the same quantity the game uses (eye to hitbox surface), so 3.0 genuinely means vanilla reach. |
 | `comboBandFraction` | `0.72` | Fraction of effective range treated as the favourable combo band (2.16 blocks at defaults). |
 | `dangerCloseFraction` | `0.55` | Below this fraction you are in a close-range trade (1.65 blocks at defaults). |
 | `predictionTicks` | `3` | How far ahead the gap is projected. |
@@ -207,7 +228,7 @@ file cannot push the controller out of safe bounds. Learned profiles live in
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `learningAggressiveness` | `0.25` | `0.05` follows the long-run average, `1.0` follows the last few hits. |
-| `minConfidence` | `0.35` | Confidence the profile must reach before automatic corrections run. See the risk ladder below. |
+| `minConfidence` | `0.25` | Confidence the profile must reach before automatic corrections run. Pooled across both hit types. See the risk ladder below. |
 | `targetTimeoutTicks` | `40` | Ticks an opponent may go unseen before the engagement drops. |
 | `stateStuckTicks` | `120` | Any non-idle state held this long without new evidence falls back to Idle. |
 | `persistProfiles` | `true` | Save learned profiles per server between sessions. |
@@ -236,7 +257,7 @@ let it act sooner on less evidence.
 
 ---
 
-## 6. Measured vs estimated — exactly which is which
+## 7. Measured vs estimated — exactly which is which
 
 This matters, so it is spelled out per value. The overlay tags each one
 (`measured` / `msr`, `est`, `prior`).
@@ -248,7 +269,8 @@ This matters, so it is spelled out per value. The overlay tags each one
 | **Hit response time** | **Measured locally** | Ticks between sending an attack and seeing the target react. Contains your round trip *plus* server tick granularity, so it is reported separately and never presented as a ping. |
 | **Opponent ping** | **Measured only when the server exposes it** | Taken from their player-list entry when present and plausible; the overlay then says `server-reported`. Many servers hide, zero or fake this. |
 | **Opponent latency (fallback)** | **Estimated** | Derived from how far apart their position updates arrive, halved because part of any gap is the server batching. Carries its own confidence and is always labelled `est`. **If there is not enough data, the overlay says `unknown` — no number is invented.** |
-| **Knockback separation / displacement / vertical pop** | **Estimated from measurements** | Computed from the victim's observed displacement over the 4 ticks after a hit, and the change in separation versus the distance at the moment of attack. Reported as a blend of the measurement and a vanilla-reference prior, weighted by sample count and consistency. |
+| **Effective attack range** | **Measured** | Learned from the gap your confirmed hits actually landed from — a robust maximum of recent hit gaps, which estimates the boundary rather than the typical distance. Against a simulation with a known reach of 3.0 it converges to 2.87–2.99 within about 40 hits. Falls back to the configured value until there are at least 8 hits, or if `autoLearnReach` is off. |
+| **Knockback separation / displacement / vertical pop** | **Estimated from measurements** | Computed from the victim's displacement along the away-from-you axis over the 4 ticks after a hit. Reported as a blend of the measurement and a vanilla-reference prior, weighted by sample count and consistency. |
 | **Knockback values before any hits** | **Prior, not measured** | Vanilla-1.8.9-like reference numbers (derived from the vanilla impulse: ~0.4 horizontal, +0.5 for a sprint hit, 0.4 vertical cap). Confidence is ~0 and the overlay says `prior`. |
 | **Server knockback configuration** | **Never known** | The client is not told it. Nothing in this mod claims to read it. |
 | **Hit confirmation** | **Inferred from evidence** | A rising hurt timer or a health drop on the entity we just attacked, inside a 6-tick window. A third party hitting the same opponent in that window is indistinguishable from here — which is why samples are rolling, confidence-weighted, and runs that do not fit the distribution are detected and decayed rather than trusted. |
@@ -257,7 +279,7 @@ This matters, so it is spelled out per value. The overlay tags each one
 
 ---
 
-## 7. How it works on 1.8.9 specifically
+## 8. How it works on 1.8.9 specifically
 
 Two implementation details are worth knowing, because both were verified against
 the actual decompiled 1.8.9 Forge classes rather than assumed.
@@ -324,12 +346,12 @@ src/main/java/dev/paxiyl/pcp/
 
 ---
 
-## 8. Test results
+## 9. Test results
 
-Two suites, **303 checks, 0 failures**, both run automatically as part of
+Three suites, **421 checks, 0 failures**, all run automatically as part of
 `./gradlew build`.
 
-### Core decision logic — `./gradlew coreTest` (211 checks)
+### Core decision logic — `./gradlew coreTest` (282 checks)
 
 Pure logic, no Minecraft on the classpath.
 
@@ -350,7 +372,7 @@ Pure logic, no Minecraft on the classpath.
 | Fuzz: whole fight | 20,000 randomised fight ticks with toggles and suspensions flipping — no action ever exceeds its duration bounds, violates the cooldown, flips direction inside the guard, runs while off/suspended/idle, or runs on unreliable latency. |
 | Controller lifecycle | Idle controller does not override; running actions are not pre-empted; over-long plans are clamped; disabling mid-action restores player control immediately; completed taps release themselves. |
 
-### Forge integration — `./gradlew integrationTest` (92 checks)
+### Forge integration — `./gradlew integrationTest` (95 checks)
 
 Runs against the real Forge and Minecraft classes, with no window and no OpenGL
 context. This is what catches API misuse that compilation alone cannot.
@@ -364,6 +386,32 @@ context. This is what catches API misuse that compilation alone cannot.
 | Key bindings | Real `KeyBinding` objects: the four defaults are bound, module keys start unbound, an unbound key is never treated as held, all share one category. |
 | Null safety | Safety guard blocks on a null client; the hit observer survives a null player and null world (which is what happens between world loads); the overlay composes safely with no GL context and `render(null)` is a no-op. |
 
+### Simulated duel — `./gradlew calibrationTest` (44 checks)
+
+The suite that would have caught the complaints this mod came back with. It
+models two players with 1.8.9-like movement and knockback — strafing, jump hits,
+missed swings, an opponent who fights the knockback — runs the real
+`CombatBrain` as the attacker across vanilla, reduced-knockback,
+high-knockback and high-latency servers, and asserts the system reaches a
+*usable* state rather than merely a correct one:
+
+| Assertion | Why it exists |
+| --- | --- |
+| Confidence clears its own gate within 12 hits, and stays above it for over half the engagement | "The confidence is always low" |
+| Learned reach lands within 0.30 blocks of the reach the simulation enforces | The range setting was untunable by hand |
+| The gap metric is unbiased to within 0.05 blocks | The spacing was offset by most of a block |
+| W-tap fires more than 5 times, and S-tap at least once | S-tap had never fired at all |
+| The learned magnitude tracks the server's real knockback | Catches a learner that converges on nothing |
+
+Current results (balanced preset, 4000 ticks per server):
+
+| Server | Confidence (peak) | Gate opens | Learned reach (true 3.00) | W-tap / S-tap |
+| --- | --- | --- | --- | --- |
+| vanilla | 0.79 | 3 hits | 2.89 | 97 / 16 |
+| reduced-kb | 0.80 | 3 hits | 2.87 | 120 / 30 |
+| high-kb | 0.80 | 3 hits | 2.99 | 60 / 22 |
+| high-latency (220ms ±60) | 0.79 | 3 hits | 2.96 | 104 / 13 |
+
 Build verification performed here:
 
 - `./gradlew build` succeeds; `build/libs/pcp-1.0.0.jar` is produced.
@@ -374,7 +422,36 @@ Build verification performed here:
 
 ### Bugs the tests actually caught
 
-Worth listing, since they are the reason the suites exist:
+Worth listing, since they are the reason the suites exist.
+
+Found by the simulated duel, after the first version was played and reported as
+"not adapting, confidence always low, spacing not right" — all four were real:
+
+1. **The gap was measured wrong, by most of a block.** `getDistanceToEntity` is
+   centre-to-centre in three dimensions; vanilla decides reach by casting a
+   3.0-block ray from the eye to the target's hitbox surface. The shipped
+   measure ran **0.45–0.65 blocks high**, and counted vertical separation from
+   jumping — which in 1.8 PvP is constant. Every band sat that much closer in
+   than configured, so the spacing really was off. Now computed against the same
+   quantity the game uses.
+2. **Confidence was read off a bucket that was usually empty.** It keyed on
+   whichever hit type you landed last, so before your first hit, and after every
+   non-sprint hit, the number shown and tested came from a near-empty bucket. It
+   is now pooled across all samples, and the confidence formula uses a median
+   absolute deviation instead of a standard deviation, so a few genuine outliers
+   (a hit on a falling target, a hit someone else also landed) stop dragging it
+   to zero. The gate now opens after **3 hits instead of 5–6** and stays open
+   through most of a fight instead of 24% of it.
+3. **The knockback samples were the noisiest quantity available.** The learner
+   was fed the *change in distance between the two players*, clamped at zero.
+   Closing while the victim flew backwards made the two cancel, producing a mix
+   of zeroes and wild swings. It now measures the victim's displacement along
+   the away-from-you axis, which is the knockback itself.
+4. **S-tap had never once fired.** With the gap over-reported, the danger band
+   was almost never entered, so the entire spacing-correction half of the mod
+   was dead code in practice. It now fires 13–30 times per simulated fight.
+
+Found by the unit suites during initial development:
 
 1. **The stuck guard pinned the state machine in Idle.** Because `Idle` is the resting state, after `stateStuckTicks` of quiet the guard re-asserted Idle every tick and never updated its timestamp — so no fight could ever be picked up again after ~6 seconds of calm. The guard now only ever fires *out of* a non-idle state.
 2. **Regime detection could never trigger.** Outliers were compared against a window they had already polluted, which inflated its spread and hid them. It now freezes a baseline when a run starts and requires a sustained run against that baseline.
@@ -383,7 +460,7 @@ Worth listing, since they are the reason the suites exist:
 
 ---
 
-## 9. Limitations and known gaps
+## 10. Limitations and known gaps
 
 - **Not play-tested in live PvP, and the game client was never launched here.**
   A launch was attempted under Xvfb: LWJGL 2.9.4 aborts in
@@ -412,6 +489,13 @@ Worth listing, since they are the reason the suites exist:
   where vanilla would not. Harmless in PvP, noted for completeness.
 - **Single opponent.** The model tracks one engagement at a time; in a group
   fight it follows your crosshair.
+- **It will not win fights for you.** Worth saying plainly: this adjusts spacing
+  and the tick an attack goes out on. It does not aim, it does not read your
+  opponent, and it does not change how much damage a hit does. Against someone
+  who out-aims you it will not close that gap — the honest ceiling on a mod like
+  this is making your own spacing and sprint resets more consistent than doing
+  them by hand under pressure. The four bugs above meant it was doing much less
+  than that; it should now do what it claims, which is still a narrow thing.
 - **No anti-cheat evasion, no packet spoofing, no timer manipulation.** None of
   that is present, and adding it is not a goal.
 

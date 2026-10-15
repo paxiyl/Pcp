@@ -85,7 +85,7 @@ public final class KnockbackProfile {
             return;
         }
         if (!obs.outgoing) {
-            this.incomingSeparation.push(obs.separationGain);
+            this.incomingSeparation.push(obs.gapOpened);
             this.totalObservations++;
             return;
         }
@@ -104,7 +104,7 @@ public final class KnockbackProfile {
 
         h.push(obs.horizontalDisplacement);
         v.push(obs.verticalMotion);
-        s.push(obs.separationGain);
+        s.push(obs.gapOpened);
         if (obs.reactionTicks > 0) {
             this.reaction.push(obs.reactionTicks);
         }
@@ -152,14 +152,40 @@ public final class KnockbackProfile {
         return this.reaction.count() == 0 ? -1.0D : weighted(this.reaction);
     }
 
+    /** Confidence in the estimate for one specific hit type. */
     public double confidence(boolean sprintHit) {
         RollingStats st = sprintHit ? this.sprintSeparation : this.walkSeparation;
         return st.confidence(CONFIDENCE_SATURATION);
     }
 
-    /** Best confidence across both hit types, for display and gating. */
+    /**
+     * Confidence that we understand knockback on this server at all, pooling
+     * both hit types.
+     *
+     * <p>This is what gates actions and what the overlay shows. Keying either
+     * off a single bucket was a real defect: the bucket chosen followed the
+     * player's most recent hit, so before the first hit of a session - and
+     * after every walk hit - the number shown and tested was from a bucket with
+     * almost nothing in it. It read as "this mod never learns anything" even
+     * while the other bucket was well populated.</p>
+     */
     public double overallConfidence() {
-        return Math.max(confidence(true), confidence(false));
+        int sprintCount = this.sprintSeparation.count();
+        int walkCount = this.walkSeparation.count();
+        int total = sprintCount + walkCount;
+        if (total == 0) {
+            return 0.0D;
+        }
+        // Pool the spread by sample weight, so one sparse bucket cannot drag
+        // down a well-measured one.
+        double cv = (sprintCount * this.sprintSeparation.robustCv()
+                + walkCount * this.walkSeparation.robustCv()) / total;
+        return RollingStats.confidenceFrom(total, cv, CONFIDENCE_SATURATION);
+    }
+
+    /** Total knockback samples behind the pooled confidence. */
+    public int pooledSampleCount() {
+        return this.sprintSeparation.count() + this.walkSeparation.count();
     }
 
     /** True once the estimate for this hit type rests on real observations. */
@@ -377,12 +403,19 @@ public final class KnockbackProfile {
         }
     }
 
-    /** Compact one-line summary for the debug overlay. */
+    /**
+     * Compact one-line summary for the debug overlay.
+     *
+     * <p>Reports the pooled sample count and pooled confidence - the numbers
+     * that actually gate behaviour - alongside the estimate for this hit type,
+     * so the overlay cannot imply nothing is being learned while the other
+     * bucket is filling up.</p>
+     */
     public String describe(boolean sprintHit) {
         boolean measured = isMeasured(sprintHit);
-        return String.format("%s sep%.2f h%.2f n=%d conf%.0f%%",
+        return String.format("%s gap%.2f h%.2f n=%d(%d) conf%.0f%%",
                 measured ? "msr" : "prior",
                 separationGain(sprintHit), horizontalPush(sprintHit),
-                sampleCount(sprintHit), confidence(sprintHit) * 100.0D);
+                sampleCount(sprintHit), pooledSampleCount(), overallConfidence() * 100.0D);
     }
 }

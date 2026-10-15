@@ -8,6 +8,7 @@ import dev.paxiyl.pcp.config.PcpConfig;
 import dev.paxiyl.pcp.core.CoreSettings;
 import dev.paxiyl.pcp.core.KnockbackProfile;
 import dev.paxiyl.pcp.core.LatencyModel;
+import dev.paxiyl.pcp.core.ReachEstimator;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.BlockPos;
@@ -45,7 +46,7 @@ public final class PcpCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/pcp [status|on|off|wtap|stap|trade|spacing|overlay|reach|learn|conf|taps|cooldown|delay|reset|reload|gui]";
+        return "/pcp [status|on|off|preset|autoreach|wtap|stap|trade|spacing|overlay|reach|learn|conf|taps|cooldown|delay|reset|reload|gui]";
     }
 
     @Override
@@ -61,12 +62,18 @@ public final class PcpCommand extends CommandBase {
     @Override
     public List<String> addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
         if (args.length == 1) {
-            return getListOfStringsMatchingLastWord(args, "status", "on", "off", "wtap", "stap", "trade",
-                    "spacing", "overlay", "reach", "learn", "conf", "taps", "cooldown", "delay",
-                    "reset", "reload", "gui", "help");
+            return getListOfStringsMatchingLastWord(args, "status", "on", "off", "preset", "autoreach",
+                    "wtap", "stap", "trade", "spacing", "overlay", "reach", "learn", "conf", "taps",
+                    "cooldown", "delay", "reset", "reload", "gui", "help");
+        }
+        if (args.length == 2 && "preset".equalsIgnoreCase(args[0])) {
+            return getListOfStringsMatchingLastWord(args, "safe", "balanced", "aggressive");
         }
         if (args.length == 2) {
             String head = args[0].toLowerCase();
+            if ("autoreach".equals(head)) {
+                return getListOfStringsMatchingLastWord(args, "on", "off", "toggle");
+            }
             if ("wtap".equals(head) || "stap".equals(head) || "trade".equals(head)
                     || "spacing".equals(head) || "overlay".equals(head)) {
                 return getListOfStringsMatchingLastWord(args, "on", "off", "toggle");
@@ -94,6 +101,33 @@ public final class PcpCommand extends CommandBase {
                 this.client.shutDownControls("disabled from command");
             }
             saveAndReply(sender, "Assist " + state(this.settings.masterEnabled));
+            return;
+        }
+        if ("preset".equals(head)) {
+            if (args.length < 2) {
+                reply(sender, "Current preset: " + this.settings.preset().id()
+                        + ". Usage: /pcp preset <safe|balanced|aggressive>");
+                return;
+            }
+            CoreSettings.Preset chosen = CoreSettings.parsePreset(args[1]);
+            if (chosen == null) {
+                reply(sender, EnumChatFormatting.RED + "Unknown preset. Pick safe, balanced or aggressive.");
+                return;
+            }
+            this.settings.applyPreset(chosen);
+            this.client.shutDownControls("preset changed");
+            saveAndReply(sender, "Preset " + chosen.id() + " applied: taps "
+                    + this.settings.minTapTicks() + "-" + this.settings.maxTapTicks() + "t, cooldown "
+                    + this.settings.actionCooldownTicks() + "t, hold max "
+                    + this.settings.maxTradeDelayTicks() + "t, min confidence "
+                    + String.format("%.0f%%", this.settings.minConfidence() * 100.0D));
+            return;
+        }
+        if ("autoreach".equals(head)) {
+            this.settings.autoReach = flag(args, this.settings.autoReach);
+            ReachEstimator r = this.client.brain().reach();
+            saveAndReply(sender, "Auto-learned reach " + state(this.settings.autoReach)
+                    + " (" + r.describe() + ")");
             return;
         }
         if ("wtap".equals(head)) {
@@ -125,12 +159,19 @@ public final class PcpCommand extends CommandBase {
         }
         if ("reach".equals(head)) {
             if (args.length < 2) {
-                reply(sender, String.format("Effective range estimate: %.2f blocks", this.settings.effectiveRange()));
+                reply(sender, String.format("Range in use %.2f blocks (%s), configured %.2f",
+                        this.settings.effectiveRange(),
+                        this.settings.usingLearnedRange() ? "measured" : "configured",
+                        this.settings.configuredRange()));
                 return;
             }
-            this.settings.setEffectiveRange(parseDoubleSafe(args[1], this.settings.effectiveRange()));
-            saveAndReply(sender, String.format("Effective range estimate: %.2f blocks (clamped 2.0-4.5)",
-                    this.settings.effectiveRange()));
+            this.settings.setEffectiveRange(parseDoubleSafe(args[1], this.settings.configuredRange()));
+            saveAndReply(sender, String.format("Configured range: %.2f blocks (clamped 2.0-4.5)%s",
+                    this.settings.configuredRange(),
+                    this.settings.usingLearnedRange()
+                            ? " - not in use while autoreach is on, measured "
+                                    + String.format("%.2f", this.settings.effectiveRange())
+                            : ""));
             return;
         }
         if ("learn".equals(head)) {
@@ -215,14 +256,22 @@ public final class PcpCommand extends CommandBase {
         reply(sender, "state " + this.client.brain().state().label()
                 + " | zone " + this.client.brain().zone().label()
                 + " | " + this.client.guard().lastBlockReason());
-        reply(sender, String.format("range %.2f, combo band %.2f, danger %.2f, taps %d-%dt, hold max %dt",
-                this.settings.effectiveRange(), this.settings.comboBandDistance(),
+        reply(sender, String.format("preset %s | range %.2f (%s), combo %.2f, danger %.2f, taps %d-%dt, hold %dt",
+                this.settings.preset().id(),
+                this.settings.effectiveRange(),
+                this.settings.usingLearnedRange() ? "measured" : "configured",
+                this.settings.comboBandDistance(),
                 this.settings.dangerCloseDistance(), this.settings.minTapTicks(),
                 this.settings.maxTapTicks(), this.settings.maxTradeDelayTicks()));
+        reply(sender, "reach " + this.client.brain().reach().describe()
+                + " | whiffs seen " + this.client.brain().reach().whiffs());
         reply(sender, "own ping " + lat.describeOwnLatency() + " (measured by server)"
                 + ", opponent " + lat.describeOpponentLatency());
         reply(sender, "knockback " + kb.describe(true) + " sprint / " + kb.describe(false) + " walk"
                 + " | server " + this.client.serverKey());
+        reply(sender, String.format("confidence in use %.0f%% (needs %.0f%%) from %d samples",
+                kb.overallConfidence() * 100.0D, this.settings.minConfidence() * 100.0D,
+                kb.pooledSampleCount()));
         reply(sender, "hits confirmed " + this.client.hitObserver().confirmedHits()
                 + ", unconfirmed " + this.client.hitObserver().unconfirmedAttacks()
                 + ", attacks held " + this.client.gate().heldCount()
@@ -231,9 +280,11 @@ public final class PcpCommand extends CommandBase {
 
     private void help(ICommandSender sender) {
         reply(sender, EnumChatFormatting.AQUA + "PCP commands");
+        reply(sender, "/pcp preset <safe|balanced|aggressive> - set everything at once");
+        reply(sender, "/pcp autoreach [on|off] - learn the attack range from your hits");
         reply(sender, "/pcp on|off - master switch");
         reply(sender, "/pcp wtap|stap|trade|spacing|overlay [on|off|toggle]");
-        reply(sender, "/pcp reach <blocks> - effective range estimate for this server");
+        reply(sender, "/pcp reach <blocks> - manual range, used only if autoreach is off");
         reply(sender, "/pcp learn <0.05-1.0> - learning aggressiveness");
         reply(sender, "/pcp conf <0-0.95> - confidence needed for corrections");
         reply(sender, "/pcp taps <min> <max> - tap length bounds in ticks");

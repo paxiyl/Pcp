@@ -95,6 +95,10 @@ public final class PcpConfig {
                 "Hardest cap on how long a requested attack may be held, in ticks. 0 disables holding.",
                 0, 6).getInt());
 
+        this.core.autoReach = c.get(CAT_SPACING, "autoLearnReach", true,
+                "Measure the effective attack range from where hits actually land, and prefer that "
+                        + "over the value below. This is the one setting nobody can read off the screen, "
+                        + "so it is learned by default.").getBoolean();
         this.core.setEffectiveRange(c.get(CAT_SPACING, "effectiveRange", 3.0D,
                 "Effective attack range estimate for this server, in blocks. Vanilla 1.8.9 is about 3.0; "
                         + "servers and anti-cheats change the practical value.", 2.0D, 4.5D).getDouble());
@@ -110,9 +114,10 @@ public final class PcpConfig {
 
         this.core.setLearningRate(c.get(CAT_LEARNING, "learningAggressiveness", 0.25D,
                 "0.05 follows the long-run average, 1.0 follows the last few hits.", 0.05D, 1.0D).getDouble());
-        this.core.setMinConfidence(c.get(CAT_LEARNING, "minConfidence", 0.35D,
+        this.core.setMinConfidence(c.get(CAT_LEARNING, "minConfidence", 0.25D,
                 "Confidence the learned knockback profile must reach before automatic corrections run. "
-                        + "A minimum-length W-tap is still allowed below it; S-tap and attack holding are not.",
+                        + "A minimum-length W-tap is still allowed below it; S-tap and attack holding are not. "
+                        + "Pooled across both hit types, so it reflects every sample taken on this server.",
                 0.0D, 0.95D).getDouble());
         this.core.setTargetTimeoutTicks(c.get(CAT_LEARNING, "targetTimeoutTicks", 40,
                 "Ticks an opponent may go unseen before the engagement is dropped.", 5, 200).getInt());
@@ -120,6 +125,14 @@ public final class PcpConfig {
                 "Any state held longer than this without new evidence falls back to Idle.", 20, 600).getInt());
         this.persistProfiles = c.get(CAT_LEARNING, "persistProfiles", true,
                 "Save the learned profile per server under config/pcp/profiles.").getBoolean();
+
+        CoreSettings.Preset storedPreset = CoreSettings.parsePreset(
+                c.get(CAT_GENERAL, "preset", CoreSettings.Preset.BALANCED.id(),
+                        "The preset last applied, for display only. Applying a preset writes the "
+                                + "individual values below, which remain the source of truth.").getString());
+        if (storedPreset != null) {
+            this.core.setPresetWithoutApplying(storedPreset);
+        }
 
         this.core.debugOverlay = c.get(CAT_DEBUG, "debugOverlay", false,
                 "Show the diagnostic overlay.").getBoolean();
@@ -141,6 +154,7 @@ public final class PcpConfig {
         set(CAT_GENERAL, "spacingAssist", this.core.spacingEnabled);
         set(CAT_GENERAL, "targetPlayersOnly", this.targetPlayersOnly);
         set(CAT_GENERAL, "chatFeedback", this.chatFeedback);
+        set(CAT_GENERAL, "preset", this.core.preset().id());
 
         set(CAT_MOVEMENT, "minTapTicks", this.core.minTapTicks());
         set(CAT_MOVEMENT, "maxTapTicks", this.core.maxTapTicks());
@@ -148,7 +162,8 @@ public final class PcpConfig {
         set(CAT_MOVEMENT, "directionFlipGuardTicks", this.core.directionFlipGuardTicks());
         set(CAT_MOVEMENT, "maxTradeDelayTicks", this.core.maxTradeDelayTicks());
 
-        set(CAT_SPACING, "effectiveRange", this.core.effectiveRange());
+        set(CAT_SPACING, "autoLearnReach", this.core.autoReach);
+        set(CAT_SPACING, "effectiveRange", this.core.configuredRange());
         set(CAT_SPACING, "comboBandFraction", this.core.comboBandFraction());
         set(CAT_SPACING, "dangerCloseFraction", this.core.dangerCloseFraction());
         set(CAT_SPACING, "predictionTicks", this.core.predictionTicks());
@@ -166,6 +181,13 @@ public final class PcpConfig {
 
         if (this.cfg.hasChanged()) {
             this.cfg.save();
+        }
+    }
+
+    private void set(String category, String key, String value) {
+        Property p = this.cfg.getCategory(category).get(key);
+        if (p != null) {
+            p.set(value);
         }
     }
 

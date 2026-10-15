@@ -4,6 +4,7 @@ import java.util.List;
 
 import dev.paxiyl.pcp.core.CombatSnapshot;
 import dev.paxiyl.pcp.core.CoreSettings;
+import dev.paxiyl.pcp.core.Geometry;
 import dev.paxiyl.pcp.core.RollingStats;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -123,8 +124,33 @@ public final class TargetTracker {
         measure(me, chosen, snapshot, tick);
     }
 
+    /**
+     * The gap that decides whether a hit can land, in blocks.
+     *
+     * <p>This is deliberately not {@code getDistanceToEntity}, which measures
+     * centre-to-centre in three dimensions. Vanilla 1.8.9 picks an attack
+     * target by casting a 3.0-block ray from the eye against the target's
+     * bounding box expanded by {@code getCollisionBorderSize()}, so the number
+     * that matters is the horizontal distance to the near face of that box -
+     * for a player, centre distance minus 0.4.</p>
+     *
+     * <p>Measured against a simulated duel, the old centre-to-centre figure ran
+     * 0.6 to 1.0 blocks high, because it both ignored the hitbox and counted
+     * vertical separation from jumping. Every band derived from
+     * {@code effectiveRange} therefore sat about that far closer in than the
+     * configuration said, which is the spacing being off in the way it was.
+     * With this definition {@code effectiveRange = 3.0} means what the game
+     * means by reach.</p>
+     */
+    public static double effectiveGap(EntityLivingBase me, EntityLivingBase target) {
+        double dx = target.posX - me.posX;
+        double dz = target.posZ - me.posZ;
+        return Geometry.effectiveGap(Math.sqrt(dx * dx + dz * dz),
+                target.posY - me.posY, target.width, target.getCollisionBorderSize());
+    }
+
     private void measure(EntityPlayerSP me, EntityLivingBase t, CombatSnapshot s, long tick) {
-        double distance = me.getDistanceToEntity(t);
+        double distance = effectiveGap(me, t);
 
         if (this.lastDistance >= 0.0D) {
             this.closing.push(this.lastDistance - distance);
@@ -252,6 +278,6 @@ public final class TargetTracker {
         if (candidate instanceof EntityPlayer && ((EntityPlayer) candidate).isSpectator()) {
             return false;
         }
-        return me.getDistanceToEntity(candidate) <= this.settings.maxTargetDistance();
+        return effectiveGap(me, candidate) <= this.settings.maxTargetDistance();
     }
 }

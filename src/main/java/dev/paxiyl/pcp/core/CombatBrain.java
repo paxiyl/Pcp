@@ -17,6 +17,7 @@ public final class CombatBrain {
     private final SpacingModel spacing = new SpacingModel();
     private final TapPlanner tapPlanner = new TapPlanner();
     private final TradeDecider tradeDecider = new TradeDecider();
+    private final ReachEstimator reach = new ReachEstimator();
     private final DecisionLog log = new DecisionLog(10);
 
     private FightState state = FightState.IDLE;
@@ -32,6 +33,13 @@ public final class CombatBrain {
     public void update(CombatSnapshot s) {
         this.lastTick = s.tick;
         this.knockback.setLearningRate(this.settings.learningRate());
+
+        // Hand the measured reach to the settings, so every band derives from
+        // what hits actually did rather than from a number somebody guessed.
+        // A non-positive estimate leaves the configured value in charge.
+        if (this.settings.autoReach) {
+            this.settings.setLearnedRange(this.reach.estimate());
+        }
 
         this.zone = this.spacing.classify(s, this.settings, this.knockback);
 
@@ -55,6 +63,27 @@ public final class CombatBrain {
             this.log.add(s.tick, "hold " + advice.delayTicks + "t: " + advice.reason);
         }
         return advice;
+    }
+
+    /**
+     * Feeds the reach estimator one attack outcome.
+     *
+     * @param gap    the gap the attack was sent from, in blocks
+     * @param landed whether it produced a visible reaction
+     */
+    public void recordReachSample(double gap, boolean landed) {
+        if (gap <= 0.0D) {
+            return;
+        }
+        if (landed) {
+            this.reach.recordHit(gap);
+        } else {
+            this.reach.recordWhiff(gap);
+        }
+    }
+
+    public ReachEstimator reach() {
+        return this.reach;
     }
 
     public void recordKnockback(KnockbackObservation observation) {

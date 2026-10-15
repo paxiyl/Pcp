@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import dev.paxiyl.pcp.core.KnockbackProfile;
+import dev.paxiyl.pcp.core.ReachEstimator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerData;
 
@@ -56,6 +57,15 @@ public final class ProfileStore {
     }
 
     public boolean load(KnockbackProfile profile, String key) {
+        return load(profile, null, key);
+    }
+
+    public boolean save(KnockbackProfile profile, String key) {
+        return save(profile, null, key);
+    }
+
+    /** @param reach may be null; when present its samples are restored too */
+    public boolean load(KnockbackProfile profile, ReachEstimator reach, String key) {
         File file = fileFor(key);
         if (!file.isFile()) {
             profile.setServerKey(key);
@@ -79,10 +89,14 @@ public final class ProfileStore {
         }
         profile.fromMap(map);
         profile.setServerKey(key);
+        if (reach != null) {
+            reach.fromCsv(props.getProperty("reachGaps"));
+        }
         return true;
     }
 
-    public boolean save(KnockbackProfile profile, String key) {
+    /** @param reach may be null; when present its samples are stored too */
+    public boolean save(KnockbackProfile profile, ReachEstimator reach, String key) {
         if (profile == null || key == null) {
             return false;
         }
@@ -97,6 +111,9 @@ public final class ProfileStore {
         while (it.hasNext()) {
             Map.Entry<String, String> e = it.next();
             props.setProperty(e.getKey(), e.getValue() == null ? "" : e.getValue());
+        }
+        if (reach != null) {
+            props.setProperty("reachGaps", reach.toCsv());
         }
         OutputStream out = null;
         try {

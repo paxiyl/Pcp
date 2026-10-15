@@ -93,6 +93,19 @@ public class PcpConfigScreen extends GuiScreen {
         final CoreSettings s = this.settings;
         final PcpConfig c = this.config;
 
+        // Deliberately first: one tap here sets every timing number below, so
+        // the screen opens on the only control most people need.
+        this.entries.add(new Entry("Setup preset") {
+            String value() {
+                return s.preset().id();
+            }
+
+            void adjust(int d) {
+                CoreSettings.Preset[] all = CoreSettings.Preset.values();
+                int next = (s.preset().ordinal() + d + all.length) % all.length;
+                s.applyPreset(all[next]);
+            }
+        });
         this.entries.add(new Toggle("Master enable") {
             boolean get() {
                 return s.masterEnabled;
@@ -196,13 +209,24 @@ public class PcpConfigScreen extends GuiScreen {
                 s.setMaxTradeDelayTicks(s.maxTradeDelayTicks() + d);
             }
         });
-        this.entries.add(new Entry("Effective range est.") {
+        this.entries.add(new Toggle("Auto-learn reach") {
+            boolean get() {
+                return s.autoReach;
+            }
+
+            void set(boolean v) {
+                s.autoReach = v;
+            }
+        });
+        this.entries.add(new Entry("Range (manual)") {
             String value() {
-                return String.format("%.2f blocks", s.effectiveRange());
+                return s.usingLearnedRange()
+                        ? String.format("%.2f measured", s.effectiveRange())
+                        : String.format("%.2f blocks", s.configuredRange());
             }
 
             void adjust(int d) {
-                s.setEffectiveRange(s.effectiveRange() + d * 0.05D);
+                s.setEffectiveRange(s.configuredRange() + d * 0.05D);
             }
         });
 
